@@ -40,12 +40,6 @@ func (h *LSHandlers) HandleRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LSHandlers) HandleGet(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Scheme != "http" {
-		r.URL.Scheme = "http"
-		r.URL.Host = r.Host
-		// badRequest(w, fmt.Errorf("URL scheme is not http"))
-	}
-
 	validShortURL := regexp.MustCompile(`^/?[a-zA-Z0-9]+$`)
 	shortURL := strings.TrimPrefix(r.URL.Path, "/")
 
@@ -64,9 +58,8 @@ func (h *LSHandlers) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
-	// w.Header().Add("Location", longURL)
-	// w.WriteHeader(http.StatusTemporaryRedirect)
+	w.Header().Add("Location", longURL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *LSHandlers) HandlePost(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +83,7 @@ func (h *LSHandlers) HandlePost(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(shortURL))
+	_, err = w.Write([]byte("http://localhost:8080/" + shortURL))
 	if err != nil {
 		internalError(w, err)
 		return
