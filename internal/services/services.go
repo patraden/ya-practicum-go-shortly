@@ -9,26 +9,26 @@ import (
 
 type LinkStore struct {
 	maxGenAttemps int
-	urlGenerator  urlgen.UrlGenerator
+	urlGenerator  urlgen.URLGenerator
 	storage       storage.BasicKVStorage
 }
 
 func NewSimpleLinkStore() *LinkStore {
 	return &LinkStore{
 		maxGenAttemps: 1000,
-		urlGenerator:  urlgen.NewRandUrlGenerator(8),
+		urlGenerator:  urlgen.NewRandURLGenerator(8),
 		storage:       storage.NewMapStorage(),
 	}
 }
 
-func (ls *LinkStore) Store(longUrl string) (string, error) {
+func (ls *LinkStore) Store(longURL string) (string, error) {
 	attemps := 0
-	shortUrl := ls.urlGenerator.GenerateShortUrl(longUrl)
-	_, err := ls.storage.Get(shortUrl)
+	shortURL := ls.urlGenerator.GenerateShortURL(longURL)
+	_, err := ls.storage.Get(shortURL)
 
 	for err == nil && attemps < ls.maxGenAttemps {
-		shortUrl := ls.urlGenerator.GenerateShortUrl(longUrl)
-		_, err = ls.storage.Get(shortUrl)
+		shortURL := ls.urlGenerator.GenerateShortURL(longURL)
+		_, err = ls.storage.Get(shortURL)
 		attemps += 1
 	}
 
@@ -36,9 +36,9 @@ func (ls *LinkStore) Store(longUrl string) (string, error) {
 		return "", fmt.Errorf("out of shortlinks")
 	}
 
-	return ls.storage.Add(shortUrl, longUrl)
+	return ls.storage.Add(shortURL, longURL)
 }
 
-func (ls *LinkStore) ReStore(shortUrl string) (string, error) {
-	return ls.storage.Get(shortUrl)
+func (ls *LinkStore) ReStore(shortURL string) (string, error) {
+	return ls.storage.Get(shortURL)
 }

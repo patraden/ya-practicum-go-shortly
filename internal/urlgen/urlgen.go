@@ -4,23 +4,23 @@ import (
 	"math/rand"
 )
 
-type UrlGenerator interface {
-	GenerateShortUrl(longUrl string) (shortUrl string)
+type URLGenerator interface {
+	GenerateShortURL(longURL string) (shortURL string)
 }
 
 // Random generator
-type RandUrlGenerator struct {
+type RandURLGenerator struct {
 	length int
-	UrlGenerator
+	URLGenerator
 }
 
-func NewRandUrlGenerator(len int) *RandUrlGenerator {
-	return &RandUrlGenerator{
+func NewRandURLGenerator(len int) *RandURLGenerator {
+	return &RandURLGenerator{
 		length: len,
 	}
 }
 
-func (g *RandUrlGenerator) GenerateShortUrl(longUrl string) (shortUrl string) {
+func (g *RandURLGenerator) GenerateShortURL(longURL string) (shortURL string) {
 	bytes := make([]byte, g.length)
 	for i := 0; i < g.length; i++ {
 		switch rand.Intn(3) {
@@ -32,6 +32,6 @@ func (g *RandUrlGenerator) GenerateShortUrl(longUrl string) (shortUrl string) {
 			bytes[i] = byte(rand.Intn(10) + 48) // 0-9
 		}
 	}
-	shortUrl = string(bytes)
+	shortURL = string(bytes)
 	return
 }

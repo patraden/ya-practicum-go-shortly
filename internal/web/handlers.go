@@ -41,14 +41,14 @@ func (h *LSHandlers) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
 func (h *LSHandlers) HandleGet(w http.ResponseWriter, r *http.Request) {
 	validShortURL := regexp.MustCompile(`^/?[a-zA-Z0-9]+$`)
-	shortUrl := strings.TrimPrefix(r.URL.Path, "/")
+	shortURL := strings.TrimPrefix(r.URL.Path, "/")
 
-	if !validShortURL.MatchString(shortUrl) {
+	if !validShortURL.MatchString(shortURL) {
 		badRequest(w, fmt.Errorf("invalid shortUrl"))
 		return
 	}
 
-	longUrl, err := h.service.ReStore(shortUrl)
+	longURL, err := h.service.ReStore(shortURL)
 	if err != nil {
 		if err.Error() == "key not found" {
 			badRequest(w, err)
@@ -59,7 +59,7 @@ func (h *LSHandlers) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// http.Redirect(w, r, longUrl, http.StatusTemporaryRedirect)
-	w.Header().Add("Location", longUrl)
+	w.Header().Add("Location", longURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -70,8 +70,8 @@ func (h *LSHandlers) HandlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	longUrl := string(b)
-	shortUrl, err := h.service.Store(longUrl)
+	longURL := string(b)
+	shortURL, err := h.service.Store(longURL)
 
 	if err != nil {
 		if err.Error() == "out of shortlinks" {
@@ -84,7 +84,7 @@ func (h *LSHandlers) HandlePost(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(shortUrl))
+	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		internalError(w, err)
 		return
