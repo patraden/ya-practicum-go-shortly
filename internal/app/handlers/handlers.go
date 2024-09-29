@@ -48,7 +48,7 @@ func HandleLinkRepoPost(repo repository.LinkRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
 
-		if r.URL.Path != "/" || r.Body == http.NoBody || err != nil || r.Header.Get(ContentType) != ContentTypeText {
+		if r.URL.Path != "/" || r.Body == http.NoBody || err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}

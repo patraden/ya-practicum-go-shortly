@@ -38,8 +38,8 @@ func (g *RandURLGenerator) GenerateURL(longURL string) (string, error) {
 	return string(bytes), nil
 }
 
-func (lr *RandURLGenerator) IsValidURL(shortURL string) bool {
-	regexPattern := fmt.Sprintf(`^/?[a-zA-Z0-9]{%d}$`, lr.length)
+func (g *RandURLGenerator) IsValidURL(shortURL string) bool {
+	regexPattern := fmt.Sprintf(`^/?[a-zA-Z0-9]{%d}$`, g.length)
 	validShortURL := regexp.MustCompile(regexPattern)
 	return validShortURL.MatchString(shortURL)
 }

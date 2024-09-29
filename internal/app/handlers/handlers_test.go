@@ -19,47 +19,56 @@ func TestHandleLinkRepo(t *testing.T) {
 	mockRepo.On("ReStore", "shortURL").Return("https://ya.ru", nil)
 
 	tests := []struct {
-		name    string
-		request *http.Request
-		repo    repository.LinkRepository
-		want    int
+		name   string
+		method string
+		path   string
+		body   io.Reader
+		want   int
 	}{
 		{
-			name:    "test 1",
-			request: httptest.NewRequest(http.MethodDelete, "/", nil),
-			want:    http.StatusBadRequest,
+			name:   "test 1",
+			method: http.MethodDelete,
+			path:   "/",
+			body:   nil,
+			want:   http.StatusBadRequest,
 		},
 		{
-			name:    "test 2",
-			request: httptest.NewRequest(http.MethodPatch, "/", nil),
-			want:    http.StatusBadRequest,
+			name:   "test 2",
+			method: http.MethodPatch,
+			path:   "/",
+			body:   nil,
+			want:   http.StatusBadRequest,
 		},
 		{
-			name:    "test 3",
-			request: httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`https://ya.ru`)),
-			want:    http.StatusCreated,
+			name:   "test 3",
+			method: http.MethodPost,
+			path:   "/",
+			body:   strings.NewReader(`https://ya.ru`),
+			want:   http.StatusCreated,
 		},
 		{
-			name:    "test 4",
-			request: httptest.NewRequest(http.MethodGet, "/shortURL", nil),
-			want:    http.StatusTemporaryRedirect,
+			name:   "test 4",
+			method: http.MethodGet,
+			path:   "/shortURL",
+			body:   nil,
+			want:   http.StatusTemporaryRedirect,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, tt.path, tt.body)
 			w := httptest.NewRecorder()
-			if tt.request.Method == http.MethodPost {
-				tt.request.Header.Add(ContentType, ContentTypeText)
-			}
 			h := http.HandlerFunc(HandleLinkRepo(mockRepo))
-			h(w, tt.request)
+			h(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 			assert.Equal(t, tt.want, result.StatusCode)
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				location := result.Header.Get("Location")
 				assert.Equal(t, location, "https://ya.ru")
 			}
+
 		})
 
 	}
@@ -87,16 +96,6 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			want: want{
 				status: http.StatusCreated,
 				isURL:  true,
-			},
-		},
-		{
-			name:        "test 2",
-			body:        `https://ya.ru`,
-			path:        `/`,
-			contentType: ContentTypeJSON,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
 			},
 		},
 		{
@@ -202,6 +201,7 @@ func TestHandleLinkRepoGet(t *testing.T) {
 			h(w, request)
 
 			result := w.Result()
+			defer result.Body.Close()
 			assert.Equal(t, tt.want.status, result.StatusCode)
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
