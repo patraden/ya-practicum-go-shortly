@@ -1,22 +1,16 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/services"
-	"github.com/patraden/ya-practicum-go-shortly/internal/web"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/handlers"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
 func main() {
-	ls := services.NewSimpleLinkStore()
-	hl := web.NewLSHandlers(ls)
-
+	repo := repository.NewBasicLinkRepository()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", hl.HandleRequests)
-
-	err := http.ListenAndServe(":8080", mux)
-	if err != nil {
-		panic(err)
-	}
-
+	mux.HandleFunc("/", handlers.HandleLinkRepo(repo))
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
