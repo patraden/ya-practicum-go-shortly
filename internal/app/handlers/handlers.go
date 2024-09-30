@@ -32,10 +32,10 @@ func HandleLinkRepoGet(repo repository.LinkRepository) http.HandlerFunc {
 		shortURL := strings.TrimPrefix(r.URL.Path, "/")
 		longURL, err := repo.ReStore(shortURL)
 		if err != nil {
-			// if err.Error() == "internal error" {
-			// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-			// 	return
-			// }
+			if err.Error() == "internal error" {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -55,10 +55,10 @@ func HandleLinkRepoPost(repo repository.LinkRepository) http.HandlerFunc {
 
 		shortURL, err := repo.Store(string(b))
 		if err != nil {
-			// if err.Error() == "internal error" {
-			// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-			// 	return
-			// }
+			if err.Error() == "internal error" {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
