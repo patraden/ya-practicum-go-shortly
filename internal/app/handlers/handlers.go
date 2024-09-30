@@ -3,8 +3,8 @@ package handlers
 import (
 	"io"
 	"net/http"
-	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
@@ -14,23 +14,11 @@ const (
 	ContentTypeJSON = "application/json"
 )
 
-func HandleLinkRepo(repo repository.LinkRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			HandleLinkRepoPost(repo).ServeHTTP(w, r)
-		case http.MethodGet:
-			HandleLinkRepoGet(repo).ServeHTTP(w, r)
-		default:
-			http.Error(w, "unknown method", http.StatusBadRequest)
-		}
-	}
-}
-
 func HandleLinkRepoGet(repo repository.LinkRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		shortURL := strings.TrimPrefix(r.URL.Path, "/")
+		shortURL := chi.URLParam(r, "shortURL")
 		longURL, err := repo.ReStore(shortURL)
+
 		if err != nil {
 			if err.Error() == "internal error" {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,6 +53,6 @@ func HandleLinkRepoPost(repo repository.LinkRepository) http.HandlerFunc {
 
 		w.Header().Set(ContentType, ContentTypeText)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://localhost:8080/" + shortURL))
+		w.Write([]byte("http://" + r.Host + "/" + shortURL))
 	}
 }

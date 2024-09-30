@@ -17,6 +17,7 @@ func TestHandleLinkRepo(t *testing.T) {
 	mockRepo := &MockLinkRepository{}
 	mockRepo.On("Store", "https://ya.ru").Return("shortURL", nil)
 	mockRepo.On("ReStore", "shortURL").Return("https://ya.ru", nil)
+	r := NewRouter(mockRepo)
 
 	tests := []struct {
 		name   string
@@ -30,14 +31,14 @@ func TestHandleLinkRepo(t *testing.T) {
 			method: http.MethodDelete,
 			path:   "/",
 			body:   nil,
-			want:   http.StatusBadRequest,
+			want:   http.StatusMethodNotAllowed,
 		},
 		{
 			name:   "test 2",
 			method: http.MethodPatch,
 			path:   "/",
 			body:   nil,
-			want:   http.StatusBadRequest,
+			want:   http.StatusMethodNotAllowed,
 		},
 		{
 			name:   "test 3",
@@ -59,8 +60,7 @@ func TestHandleLinkRepo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(tt.method, tt.path, tt.body)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(HandleLinkRepo(mockRepo))
-			h(w, request)
+			r.ServeHTTP(w, request)
 			result := w.Result()
 			defer result.Body.Close()
 			assert.Equal(t, tt.want, result.StatusCode)
@@ -164,8 +164,10 @@ func TestHandleLinkRepoPost(t *testing.T) {
 func TestHandleLinkRepoGet(t *testing.T) {
 	mapRepo := repository.NewBasicLinkRepository()
 	longURL := `https://ya.ru`
+	serverAddr := `http://localhost:8080/`
 	shortURL, _ := mapRepo.Store(longURL)
-	serverAddr := "http://localhost:8080/"
+	r := NewRouter(mapRepo)
+
 	type want struct {
 		status   int
 		location string
@@ -197,8 +199,7 @@ func TestHandleLinkRepoGet(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(HandleLinkRepoGet(mapRepo))
-			h(w, request)
+			r.ServeHTTP(w, request)
 
 			result := w.Result()
 			defer result.Body.Close()

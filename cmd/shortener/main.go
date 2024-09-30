@@ -10,7 +10,6 @@ import (
 
 func main() {
 	repo := repository.NewBasicLinkRepository()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handlers.HandleLinkRepo(repo))
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	r := handlers.NewRouter(repo)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
