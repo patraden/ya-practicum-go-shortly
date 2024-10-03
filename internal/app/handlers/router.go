@@ -17,7 +17,7 @@ func NewRouter(appConfig *config.Config) http.Handler {
 	r.Get("/{shortURL}", HandleLinkRepoGet(appConfig))
 	r.Post("/", HandleLinkRepoPost(appConfig))
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "not found", http.StatusBadRequest)
+		http.Error(w, "path not found", http.StatusBadRequest)
 	}))
 
 	return r

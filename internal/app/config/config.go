@@ -39,7 +39,7 @@ func NewDevConfig(repo repository.LinkRepository) *Config {
 			Host: `localhost`,
 			Port: `8080`,
 		},
-		ShortURLAddr: `http://localhost:8000/`,
+		ShortURLAddr: `http://localhost:8080/`,
 		Repo:         repo,
 	}
 
@@ -48,7 +48,7 @@ func NewDevConfig(repo repository.LinkRepository) *Config {
 func DevConfigWithFlags(repo repository.LinkRepository) *Config {
 	devConfig := NewDevConfig(repo)
 	flag.Var(&devConfig.ServerAddr, "a", "server address {host:port}")
-	flag.StringVar(&devConfig.ShortURLAddr, "b", "http://localhost:8000/", "URL address http://localhost:8000/{shortURL}")
+	flag.StringVar(&devConfig.ShortURLAddr, "b", "http://localhost:8080/", "URL address e.g. http://localhost:8080/{shortURL}")
 	flag.Parse()
 	return devConfig
 }
