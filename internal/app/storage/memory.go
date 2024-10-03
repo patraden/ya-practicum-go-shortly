@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -20,6 +19,10 @@ func NewMapStorage() *MapKVStorage {
 func (ms *MapKVStorage) Add(key string, value string) (string, error) {
 	ms.Lock()
 	defer ms.Unlock()
+	_, ok := ms.values[key]
+	if ok {
+		return key, ErrKeyExists
+	}
 	ms.values[key] = value
 	return key, nil
 }
@@ -30,7 +33,7 @@ func (ms *MapKVStorage) Get(key string) (string, error) {
 
 	value, ok := ms.values[key]
 	if !ok {
-		return key, fmt.Errorf("key not found")
+		return key, ErrKeyNotFound
 	}
 	return value, nil
 }

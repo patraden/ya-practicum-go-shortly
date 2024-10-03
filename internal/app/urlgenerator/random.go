@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
-
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/helpers"
 )
 
 type RandURLGenerator struct {
@@ -19,11 +17,7 @@ func NewRandURLGenerator(len int) *RandURLGenerator {
 	}
 }
 
-func (g *RandURLGenerator) GenerateURL(longURL string) (string, error) {
-	if !helpers.IsURL(longURL) {
-		return longURL, fmt.Errorf("invalid long URL")
-	}
-
+func (g *RandURLGenerator) GenerateURL(longURL string) string {
 	bytes := make([]byte, g.length)
 	for i := 0; i < g.length; i++ {
 		switch rand.Intn(3) {
@@ -35,7 +29,7 @@ func (g *RandURLGenerator) GenerateURL(longURL string) (string, error) {
 			bytes[i] = byte(rand.Intn(10) + 48) // 0-9
 		}
 	}
-	return string(bytes), nil
+	return string(bytes)
 }
 
 func (g *RandURLGenerator) IsValidURL(shortURL string) bool {

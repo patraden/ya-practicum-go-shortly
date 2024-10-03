@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/helpers"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
@@ -14,13 +17,13 @@ const (
 	ContentTypeJSON = "application/json"
 )
 
-func HandleLinkRepoGet(repo repository.LinkRepository) http.HandlerFunc {
+func HandleLinkRepoGet(appConfig *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		shortURL := chi.URLParam(r, "shortURL")
-		longURL, err := repo.ReStore(shortURL)
+		longURL, err := appConfig.Repo.ReStore(shortURL)
 
 		if err != nil {
-			if err.Error() == "internal error" {
+			if errors.Is(err, repository.ErrInternal) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -32,18 +35,18 @@ func HandleLinkRepoGet(repo repository.LinkRepository) http.HandlerFunc {
 	}
 }
 
-func HandleLinkRepoPost(repo repository.LinkRepository) http.HandlerFunc {
+func HandleLinkRepoPost(appConfig *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
 
-		if r.URL.Path != "/" || r.Body == http.NoBody || err != nil {
+		if r.URL.Path != "/" || r.Body == http.NoBody || err != nil || !helpers.IsURL(string(b)) {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
 
-		shortURL, err := repo.Store(string(b))
+		shortURL, err := appConfig.Repo.Store(string(b))
 		if err != nil {
-			if err.Error() == "internal error" {
+			if errors.Is(err, repository.ErrInternal) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -53,6 +56,6 @@ func HandleLinkRepoPost(repo repository.LinkRepository) http.HandlerFunc {
 
 		w.Header().Set(ContentType, ContentTypeText)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/" + shortURL))
+		w.Write([]byte(appConfig.ShortURLAddr + shortURL))
 	}
 }

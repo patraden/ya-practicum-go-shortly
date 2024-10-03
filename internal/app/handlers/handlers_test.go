@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/helpers"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,8 @@ func TestHandleLinkRepo(t *testing.T) {
 	mockRepo := &MockLinkRepository{}
 	mockRepo.On("Store", "https://ya.ru").Return("shortURL", nil)
 	mockRepo.On("ReStore", "shortURL").Return("https://ya.ru", nil)
-	r := NewRouter(mockRepo)
+	appConfig := config.NewDevConfig(mockRepo)
+	r := NewRouter(appConfig)
 
 	tests := []struct {
 		name   string
@@ -77,6 +79,7 @@ func TestHandleLinkRepo(t *testing.T) {
 
 func TestHandleLinkRepoPost(t *testing.T) {
 	mapRepo := repository.NewBasicLinkRepository()
+	appConfig := config.NewDevConfig(mapRepo)
 	type want struct {
 		status int
 		isURL  bool
@@ -99,7 +102,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			},
 		},
 		{
-			name:        "test 3",
+			name:        "test 2",
 			body:        ``,
 			path:        `/`,
 			contentType: ContentTypeText,
@@ -109,7 +112,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			},
 		},
 		{
-			name:        "test 4",
+			name:        "test 3",
 			body:        `//ya.ru`,
 			path:        `/`,
 			contentType: ContentTypeText,
@@ -119,7 +122,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			},
 		},
 		{
-			name:        "test 5",
+			name:        "test 4",
 			body:        `https://ya.ru`,
 			path:        `/a/b/c`,
 			contentType: ContentTypeText,
@@ -129,7 +132,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			},
 		},
 		{
-			name:        "test 6",
+			name:        "test 5",
 			body:        `https://ya.ru`,
 			path:        `//`,
 			contentType: ContentTypeText,
@@ -145,7 +148,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			request.Header.Add(ContentType, tt.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(HandleLinkRepoPost(mapRepo))
+			h := http.HandlerFunc(HandleLinkRepoPost(appConfig))
 			h(w, request)
 
 			result := w.Result()
@@ -163,10 +166,11 @@ func TestHandleLinkRepoPost(t *testing.T) {
 
 func TestHandleLinkRepoGet(t *testing.T) {
 	mapRepo := repository.NewBasicLinkRepository()
+	appConfig := config.NewDevConfig(mapRepo)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := mapRepo.Store(longURL)
-	r := NewRouter(mapRepo)
+	r := NewRouter(appConfig)
 
 	type want struct {
 		status   int
