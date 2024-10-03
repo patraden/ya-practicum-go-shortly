@@ -48,7 +48,15 @@ func NewDevConfig(repo repository.LinkRepository) *Config {
 func DevConfigWithFlags(repo repository.LinkRepository) *Config {
 	devConfig := NewDevConfig(repo)
 	flag.Var(&devConfig.ServerAddr, "a", "server address {host:port}")
-	flag.StringVar(&devConfig.ShortURLAddr, "b", "http://localhost:8080/", "URL address e.g. http://localhost:8080/{shortURL}")
+	flag.StringVar(&devConfig.ShortURLAddr, "b", "", "URL address e.g. http://localhost:8080/{shortURL}")
 	flag.Parse()
+
+	if devConfig.ShortURLAddr == "" {
+		devConfig.ShortURLAddr = fmt.Sprintf("http://%s/", devConfig.ServerAddr.String())
+	}
+	if !strings.HasSuffix(devConfig.ShortURLAddr, "/") {
+		devConfig.ShortURLAddr += "/"
+	}
+
 	return devConfig
 }
