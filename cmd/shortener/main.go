@@ -11,7 +11,7 @@ import (
 
 func main() {
 	repo := repository.NewBasicLinkRepository()
-	appConfig := config.DevConfigWithFlags(repo)
+	appConfig := config.LoadConfig(repo)
 	r := handlers.NewRouter(appConfig)
-	log.Fatal(http.ListenAndServe(appConfig.ServerAddr.String(), r))
+	log.Fatal(http.ListenAndServe(appConfig.ServerAddr, r))
 }

@@ -1,6 +1,9 @@
 package helpers
 
-import "net/url"
+import (
+	"net/url"
+	"strings"
+)
 
 func IsURL(longURL string) bool {
 	parsedURL, err := url.ParseRequestURI(longURL)
@@ -11,4 +14,9 @@ func IsURL(longURL string) bool {
 		return false
 	}
 	return true
+}
+
+func IsServerAddress(addr string) bool {
+	hp := strings.Split(addr, ":")
+	return len(hp) == 2
 }

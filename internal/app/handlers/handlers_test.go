@@ -18,7 +18,7 @@ func TestHandleLinkRepo(t *testing.T) {
 	mockRepo := &MockLinkRepository{}
 	mockRepo.On("Store", "https://ya.ru").Return("shortURL", nil)
 	mockRepo.On("ReStore", "shortURL").Return("https://ya.ru", nil)
-	appConfig := config.NewDevConfig(mockRepo)
+	appConfig := config.DefaultConfig(mockRepo)
 	r := NewRouter(appConfig)
 
 	tests := []struct {
@@ -79,7 +79,7 @@ func TestHandleLinkRepo(t *testing.T) {
 
 func TestHandleLinkRepoPost(t *testing.T) {
 	mapRepo := repository.NewBasicLinkRepository()
-	appConfig := config.NewDevConfig(mapRepo)
+	appConfig := config.DefaultConfig(mapRepo)
 	type want struct {
 		status int
 		isURL  bool
@@ -166,7 +166,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 
 func TestHandleLinkRepoGet(t *testing.T) {
 	mapRepo := repository.NewBasicLinkRepository()
-	appConfig := config.NewDevConfig(mapRepo)
+	appConfig := config.DefaultConfig(mapRepo)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := mapRepo.Store(longURL)

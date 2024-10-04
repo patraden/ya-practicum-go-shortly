@@ -19,4 +19,5 @@ var (
 	ErrInternal = fmt.Errorf(erroFormat, errors.New("internal error"))
 	ErrNotFound = fmt.Errorf(erroFormat, errors.New("url not found"))
 	ErrInvalid  = fmt.Errorf(erroFormat, errors.New("invalid url format"))
+	ErrOutOfURL = fmt.Errorf(erroFormat, errors.New("out of short urls"))
 )

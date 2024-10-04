@@ -14,7 +14,6 @@ import (
 const (
 	ContentType     = "Content-Type"
 	ContentTypeText = "text/plain"
-	ContentTypeJSON = "application/json"
 )
 
 func HandleLinkRepoGet(appConfig *config.Config) http.HandlerFunc {
@@ -56,6 +55,6 @@ func HandleLinkRepoPost(appConfig *config.Config) http.HandlerFunc {
 
 		w.Header().Set(ContentType, ContentTypeText)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(appConfig.ShortURLAddr + shortURL))
+		w.Write([]byte(appConfig.BaseURL + shortURL))
 	}
 }

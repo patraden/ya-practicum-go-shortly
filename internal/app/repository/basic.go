@@ -34,6 +34,9 @@ func (lr *BasicLinkRepository) Store(longURL string) (string, error) {
 	}
 
 	if err != nil {
+		if errors.Is(err, storage.ErrKeyExists) {
+			return "", ErrOutOfURL
+		}
 		return "", ErrInternal
 	}
 	return shortURL, nil
