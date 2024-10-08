@@ -1,7 +1,8 @@
 name: Run tests and upload coverage
 
 on: 
-  push
+  push:
+  pull_request:
 
 jobs:
   test:
@@ -15,14 +16,18 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.8'  # Replace with your Go version
 
       - name: Install dependencies
         run: go mod download
 
       - name: Run tests
-        run: go test ./... -coverprofile=coverage.txt
+        run: go test -v -coverprofile=coverage.out ./...
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:
+          file: ./coverage.out
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
