@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -6,16 +6,18 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 )
 
-func NewRouter(appConfig *config.Config) http.Handler {
+func NewRouter(service service.URLShortener, config config.Config) http.Handler {
+	h := NewHandler(service, config)
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/{shortURL}", HandleLinkRepoGet(appConfig))
-	r.Post("/", HandleLinkRepoPost(appConfig))
+	r.Get("/{shortURL}", h.HandleGet)
+	r.Post("/", h.HandlePost)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "path not found", http.StatusBadRequest)
 	}))

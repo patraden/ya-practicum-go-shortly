@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/handlers"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 )
 
 func main() {
-	repo := repository.NewBasicLinkRepository()
-	appConfig := config.LoadConfig(repo)
-	r := handlers.NewRouter(appConfig)
-	log.Fatal(http.ListenAndServe(appConfig.ServerAddr, r))
+	service := service.NewShortenerService()
+	cfg := config.LoadConfig()
+	r := handler.NewRouter(service, cfg)
+	log.Fatal(http.ListenAndServe(cfg.ServerAddr, r))
 }

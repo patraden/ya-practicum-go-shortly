@@ -1,13 +1,14 @@
-package storage
+package repository
 
 import (
 	"testing"
 
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMapKVStorageAdd(t *testing.T) {
-	storage := NewMapStorage()
+func TestMapURLRepository(t *testing.T) {
+	storage := NewMapURLRepository()
 
 	type want struct {
 		val string
@@ -44,13 +45,13 @@ func TestMapKVStorageAdd(t *testing.T) {
 			value: "e",
 			want: want{
 				val: "b",
-				err: ErrKeyExists,
+				err: e.ErrExists,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v, err := storage.Add(tt.key, tt.value)
+			v, err := storage.AddURL(tt.key, tt.value)
 			if tt.want.err != nil {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.want.err.Error())

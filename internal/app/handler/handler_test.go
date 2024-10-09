@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"io"
@@ -9,17 +9,18 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/helpers"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandleLinkRepo(t *testing.T) {
-	mockRepo := &MockLinkRepository{}
-	mockRepo.On("Store", "https://ya.ru").Return("shortURL", nil)
-	mockRepo.On("ReStore", "shortURL").Return("https://ya.ru", nil)
-	appConfig := config.DefaultConfig(mockRepo)
-	r := NewRouter(appConfig)
+func TestHandle(t *testing.T) {
+	mockService := mock.NewMockShortenerService()
+	mockService.On("ShortenURL", "https://ya.ru").Return("shortURL", nil)
+	mockService.On("GetOriginalURL", "shortURL").Return("https://ya.ru", nil)
+	config := config.DefaultConfig()
+	r := NewRouter(mockService, config)
 
 	tests := []struct {
 		name   string
@@ -77,9 +78,10 @@ func TestHandleLinkRepo(t *testing.T) {
 
 }
 
-func TestHandleLinkRepoPost(t *testing.T) {
-	mapRepo := repository.NewBasicLinkRepository()
-	appConfig := config.DefaultConfig(mapRepo)
+func TestHandlePost(t *testing.T) {
+	service := service.NewShortenerService()
+	config := config.DefaultConfig()
+	h := NewHandler(service, config)
 	type want struct {
 		status int
 		isURL  bool
@@ -148,7 +150,7 @@ func TestHandleLinkRepoPost(t *testing.T) {
 			request.Header.Add(ContentType, tt.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(HandleLinkRepoPost(appConfig))
+			h := http.HandlerFunc(h.HandlePost)
 			h(w, request)
 
 			result := w.Result()
@@ -164,13 +166,13 @@ func TestHandleLinkRepoPost(t *testing.T) {
 
 }
 
-func TestHandleLinkRepoGet(t *testing.T) {
-	mapRepo := repository.NewBasicLinkRepository()
-	appConfig := config.DefaultConfig(mapRepo)
+func TestHandleGet(t *testing.T) {
+	service := service.NewShortenerService()
+	config := config.DefaultConfig()
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
-	shortURL, _ := mapRepo.Store(longURL)
-	r := NewRouter(appConfig)
+	shortURL, _ := service.ShortenURL(longURL)
+	r := NewRouter(service, config)
 
 	type want struct {
 		status   int
