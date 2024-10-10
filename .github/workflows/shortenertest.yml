@@ -62,23 +62,19 @@ jobs:
           go build -buildvcs=false -o shortener
 
       - name: "Code increment #1"
-        if: github.event_name == 'pull_request'
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration1$ \
               -binary-path=cmd/shortener/shortener
 
       - name: "Code increment #2"
-        if: github.event_name == 'pull_request'
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration2$ -source-path=.
 
       - name: "Code increment #3"
-        if: github.event_name == 'pull_request'
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration3$ -source-path=.
 
       - name: "Code increment #4"
-        if: github.event_name == 'pull_request'
         run: |
           SERVER_PORT=$(random unused-port)
           shortenertestbeta -test.v -test.run=^TestIteration4$ \
@@ -86,7 +82,6 @@ jobs:
               -server-port=$SERVER_PORT
 
       - name: "Code increment #5"
-        if: github.event_name == 'pull_request'
         run: |
           SERVER_PORT=$(random unused-port)
           shortenertestbeta -test.v -test.run=^TestIteration5$ \
