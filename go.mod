@@ -1,8 +1,6 @@
 module github.com/patraden/ya-practicum-go-shortly
 
-go 1.22.1
-
-toolchain go1.22.8
+go 1.22.8
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
