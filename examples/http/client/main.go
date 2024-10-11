@@ -21,7 +21,8 @@ func main() {
 	// читаем строку из консоли
 	long, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 	long = strings.TrimSuffix(long, "\n")
 	// заполняем контейнер данными
@@ -33,14 +34,16 @@ func main() {
 	// тело должно быть источником потокового чтения io.Reader
 	request, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 	// в заголовках запроса указываем кодировку
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	// отправляем запрос и получаем ответ
 	response, err := client.Do(request)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(3)
 	}
 	// выводим код ответа
 	fmt.Println("Статус-код ", response.Status)
@@ -48,7 +51,8 @@ func main() {
 	// читаем поток из тела ответа
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(4)
 	}
 	// и печатаем его
 	fmt.Println(string(body))

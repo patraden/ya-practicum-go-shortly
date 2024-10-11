@@ -7,11 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMapURLRepository(t *testing.T) {
-	storage := NewMapURLRepository()
+func TestNewInMemoryURLRepository(t *testing.T) {
+	storage := NewInMemoryURLRepository()
 
 	type want struct {
-		val string
 		err error
 	}
 
@@ -26,7 +25,6 @@ func TestMapURLRepository(t *testing.T) {
 			key:   "a",
 			value: "b",
 			want: want{
-				val: "a",
 				err: nil,
 			},
 		},
@@ -35,7 +33,6 @@ func TestMapURLRepository(t *testing.T) {
 			key:   "b",
 			value: "d",
 			want: want{
-				val: "b",
 				err: nil,
 			},
 		},
@@ -44,21 +41,18 @@ func TestMapURLRepository(t *testing.T) {
 			key:   "b",
 			value: "e",
 			want: want{
-				val: "b",
 				err: e.ErrExists,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v, err := storage.AddURL(tt.key, tt.value)
+			err := storage.AddURL(tt.key, tt.value)
 			if tt.want.err != nil {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.want.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, v, tt.want.val)
-				assert.Equal(t, v, tt.want.val)
 			}
 		})
 	}

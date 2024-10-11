@@ -2,7 +2,10 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
@@ -12,29 +15,44 @@ type ShortenerService struct {
 	URLShortener
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
-	retries      int
+	genTimeout   time.Duration
 }
 
-func NewShortenerService() *ShortenerService {
+func NewShortenerService(timeout time.Duration) *ShortenerService {
 	return &ShortenerService{
-		repo:         repository.NewMapURLRepository(),
+		repo:         repository.NewInMemoryURLRepository(),
 		urlGenerator: urlgenerator.NewRandURLGenerator(8),
-		retries:      1000,
+		genTimeout:   timeout,
 	}
 }
 
 func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
-	shortURL := s.urlGenerator.GenerateURL(longURL)
+	var shortURL string
+	var err error
 
-	tries := 0
-	_, err := s.repo.AddURL(shortURL, longURL)
-	for errors.Is(err, e.ErrExists) && tries < s.retries {
+	// always assume that url generation is an non-injective function.
+	// timeout based backoff is the basic mechanism to address collisions.
+	// in case of high rates of collisions errors,
+	// the intention should rather be to improve URLGenerator algorythms
+	op := func() error {
 		shortURL = s.urlGenerator.GenerateURL(longURL)
-		_, err = s.repo.AddURL(shortURL, longURL)
-		tries += 1
+		_, err = s.repo.GetURL(shortURL)
+		switch {
+		case errors.Is(err, e.ErrNotFound):
+			return nil
+		case err != nil:
+			return backoff.Permanent(err)
+		default:
+			return fmt.Errorf("URL collision")
+		}
 	}
 
-	if err != nil {
+	b := backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(s.genTimeout))
+	if err = backoff.Retry(op, b); err != nil {
+		return "", e.ErrInternal
+	}
+
+	if err = s.repo.AddURL(shortURL, longURL); err != nil {
 		return "", e.ErrInternal
 	}
 

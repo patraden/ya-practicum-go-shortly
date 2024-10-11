@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -8,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/helpers"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,8 +80,8 @@ func TestHandle(t *testing.T) {
 }
 
 func TestHandlePost(t *testing.T) {
-	service := service.NewShortenerService()
 	config := config.DefaultConfig()
+	service := service.NewShortenerService(config.URLGenTimeout)
 	h := NewHandler(service, config)
 	type want struct {
 		status int
@@ -160,19 +161,21 @@ func TestHandlePost(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.want.status, result.StatusCode)
-			assert.Equal(t, tt.want.isURL, helpers.IsURL(string(shortURL)))
+			assert.Equal(t, tt.want.isURL, utils.IsURL(string(shortURL)))
 		})
 	}
 
 }
 
 func TestHandleGet(t *testing.T) {
-	service := service.NewShortenerService()
 	config := config.DefaultConfig()
+	service := service.NewShortenerService(config.URLGenTimeout)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
 	r := NewRouter(service, config)
+
+	fmt.Println("=====>", serverAddr+shortURL)
 
 	type want struct {
 		status   int

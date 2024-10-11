@@ -2,16 +2,13 @@ package errors
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
-	ErrParams   = fmt.Errorf(`config error: %w`, errors.New("invalid parameter"))
-	ErrEnvParse = fmt.Errorf(`config error: %w`, errors.New("env parsing error"))
-
-	ErrNotFound = fmt.Errorf(`repository error: %w`, errors.New("url not found"))
-	ErrExists   = fmt.Errorf(`repository error: %w`, errors.New("url already exist"))
-
-	ErrInternal = fmt.Errorf(`service error: %w`, errors.New("internal error"))
-	ErrInvalid  = fmt.Errorf(`service error: %w`, errors.New("invalid url format"))
+	ErrParams   = errors.New("invalid config parameter")
+	ErrEnvParse = errors.New("env config parsing error")
+	ErrNotFound = errors.New("URL not found in repository")
+	ErrExists   = errors.New("URL exists in repository")
+	ErrInternal = errors.New("internal URL service error")
+	ErrInvalid  = errors.New("invalid URL format")
 )

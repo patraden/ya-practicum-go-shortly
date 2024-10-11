@@ -10,8 +10,12 @@ import (
 )
 
 func main() {
-	service := service.NewShortenerService()
 	cfg := config.LoadConfig()
+	service := service.NewShortenerService(cfg.URLGenTimeout)
 	r := handler.NewRouter(service, cfg)
-	log.Fatal(http.ListenAndServe(cfg.ServerAddr, r))
+	err := http.ListenAndServe(cfg.ServerAddr, r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
