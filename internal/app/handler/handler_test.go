@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -174,8 +173,6 @@ func TestHandleGet(t *testing.T) {
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
 	r := NewRouter(service, config)
-
-	fmt.Println("=====>", serverAddr+shortURL)
 
 	type want struct {
 		status   int
