@@ -18,6 +18,7 @@ func NewRouter(service service.URLShortener, config config.Config) http.Handler 
 	r.Use(mdlwr.WithLogging)
 
 	r.Get("/{shortURL}", h.HandleGet)
+	r.Post("/api/shorten", h.HandlePostJSON)
 	r.Post("/", h.HandlePost)
 	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "path not found", http.StatusBadRequest)

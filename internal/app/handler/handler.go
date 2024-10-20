@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mailru/easyjson"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
@@ -15,6 +16,7 @@ import (
 const (
 	ContentType     = "Content-Type"
 	ContentTypeText = "text/plain"
+	ContentTypeJSON = "application/json"
 )
 
 type Handler struct {
@@ -71,4 +73,29 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
+	urlReq := service.URLRequest{}
+
+	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortURL, err := h.service.ShortenURL(urlReq.LongURL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	urlResp := service.URLResponse{ShortURL: h.config.BaseURL + shortURL}
+
+	w.Header().Set(ContentType, ContentTypeJSON)
+	w.WriteHeader(http.StatusCreated)
+	if _, err = easyjson.MarshalToWriter(&urlResp, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }

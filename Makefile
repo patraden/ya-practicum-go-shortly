@@ -14,6 +14,7 @@ test:
 	@go test -v ./...
 
 build:
+	@rm -f ./cmd/shortener/shortener
 	@go build -buildvcs=false -o cmd/shortener/shortener ./cmd/shortener
 
 shortenertest: build
@@ -33,3 +34,5 @@ shortenertest: build
     -server-port=8787
 	@echo "Running increment6 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration6\$$ -source-path=$(SOURCE_PATH)
+	@echo "Running increment7 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration7\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH)
