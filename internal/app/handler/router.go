@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"compress/flate"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,9 @@ func NewRouter(service service.URLShortener, config config.Config) http.Handler 
 	r := chi.NewRouter()
 
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.StripSlashes)
+	r.Use(middleware.Compress(flate.DefaultCompression, ContentTypeJSON, ContentTypeText))
+	r.Use(mdlwr.Decompress)
 	r.Use(mdlwr.WithLogging)
 
 	r.Get("/{shortURL}", h.HandleGet)
