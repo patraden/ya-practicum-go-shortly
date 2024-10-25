@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"io"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
@@ -16,11 +17,14 @@ import (
 )
 
 func TestHandle(t *testing.T) {
-	mockService := mock.NewMockShortenerService()
+	t.Parallel()
+
+	mockService := mock.NewShortenerService()
+	config := config.DefaultConfig()
+	router := h.NewRouter(mockService, config)
+
 	mockService.On("ShortenURL", "https://ya.ru").Return("shortURL", nil)
 	mockService.On("GetOriginalURL", "shortURL").Return("https://ya.ru", nil)
-	config := config.DefaultConfig()
-	r := NewRouter(mockService, config)
 
 	tests := []struct {
 		name   string
@@ -59,29 +63,36 @@ func TestHandle(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, tt.path, tt.body)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(test.method, test.path, test.body)
 			w := httptest.NewRecorder()
-			r.ServeHTTP(w, request)
+
+			router.ServeHTTP(w, request)
+
 			result := w.Result()
+
 			defer result.Body.Close()
-			assert.Equal(t, tt.want, result.StatusCode)
+
+			assert.Equal(t, test.want, result.StatusCode)
+
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				location := result.Header.Get("Location")
-				assert.Equal(t, location, "https://ya.ru")
+				assert.Equal(t, "https://ya.ru", location)
 			}
-
 		})
-
 	}
-
 }
 
 func TestHandlePost(t *testing.T) {
+	t.Parallel()
+
 	config := config.DefaultConfig()
 	service := service.NewShortenerService(config.URLGenTimeout)
-	h := NewHandler(service, config)
+	handler := h.NewHandler(service, config)
+
 	type want struct {
 		status int
 		isURL  bool
@@ -97,7 +108,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 1",
 			body:        `https://ya.ru`,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusCreated,
 				isURL:  true,
@@ -107,7 +118,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 2",
 			body:        ``,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -117,7 +128,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 3",
 			body:        `//ya.ru`,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -127,7 +138,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 4",
 			body:        `https://ya.ru`,
 			path:        `/a/b/c`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -137,42 +148,47 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 5",
 			body:        `https://ya.ru`,
 			path:        `//`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
-			request.Header.Add(ContentType, tt.contentType)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+			request.Header.Add(h.ContentType, test.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(h.HandlePost)
+			h := http.HandlerFunc(handler.HandlePost)
 			h(w, request)
 
 			result := w.Result()
 			shortURL, err := io.ReadAll(result.Body)
+
 			require.NoError(t, err)
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.want.status, result.StatusCode)
-			assert.Equal(t, tt.want.isURL, utils.IsURL(string(shortURL)))
+			assert.Equal(t, test.want.status, result.StatusCode)
+			assert.Equal(t, test.want.isURL, utils.IsURL(string(shortURL)))
 		})
 	}
-
 }
 
 func TestHandleGet(t *testing.T) {
+	t.Parallel()
+
 	config := config.DefaultConfig()
 	service := service.NewShortenerService(config.URLGenTimeout)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
-	r := NewRouter(service, config)
+	router := h.NewRouter(service, config)
 
 	type want struct {
 		status   int
@@ -200,16 +216,21 @@ func TestHandleGet(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			t.Parallel()
 
+			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			w := httptest.NewRecorder()
-			r.ServeHTTP(w, request)
+
+			router.ServeHTTP(w, request)
 
 			result := w.Result()
 			defer result.Body.Close()
+
 			assert.Equal(t, tt.want.status, result.StatusCode)
+
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
 			}

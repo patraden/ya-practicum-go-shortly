@@ -16,7 +16,10 @@ type builder struct {
 }
 
 func newBuilder() *builder {
-	return &builder{}
+	return &builder{
+		env:   DefaultConfig(),
+		flags: DefaultConfig(),
+	}
 }
 
 func (b *builder) loadEnvConfig() {
@@ -24,12 +27,13 @@ func (b *builder) loadEnvConfig() {
 	if err != nil {
 		log.Fatal(e.ErrEnvParse)
 	}
-
 }
 
 func (b *builder) loadFlagsConfig() {
-	flag.StringVar(&b.flags.ServerAddr, "a", "", "server address {host}:{port}")
-	flag.StringVar(&b.flags.BaseURL, "b", "", "base url {base url}/{short link}")
+	cfg := DefaultConfig()
+
+	flag.StringVar(&b.flags.ServerAddr, "a", cfg.ServerAddr, "server address {host}:{port}")
+	flag.StringVar(&b.flags.BaseURL, "b", cfg.BaseURL, "base url {base url}/{short link}")
 	flag.Parse()
 }
 
@@ -38,9 +42,9 @@ func (b *builder) getConfig() Config {
 
 	// handle Server Address
 	switch {
-	case b.env.ServerAddr != "":
+	case b.env.ServerAddr != cfg.ServerAddr:
 		cfg.ServerAddr = b.env.ServerAddr
-	case b.flags.ServerAddr != "":
+	case b.flags.ServerAddr != cfg.ServerAddr:
 		cfg.ServerAddr = b.flags.ServerAddr
 	}
 
@@ -51,9 +55,9 @@ func (b *builder) getConfig() Config {
 
 	// handle Base URL
 	switch {
-	case b.env.BaseURL != "":
+	case b.env.BaseURL != cfg.BaseURL:
 		cfg.BaseURL = b.env.BaseURL
-	case b.flags.BaseURL != "":
+	case b.flags.BaseURL != cfg.BaseURL:
 		cfg.BaseURL = b.flags.BaseURL
 	}
 
@@ -67,5 +71,4 @@ func (b *builder) getConfig() Config {
 	}
 
 	return cfg
-
 }

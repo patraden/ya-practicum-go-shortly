@@ -6,12 +6,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var Log zerolog.Logger
+type Logger struct {
+	log zerolog.Logger
+}
 
-func Init(level zerolog.Level) {
-	Log = zerolog.New(os.Stdout).
-		With().
-		Timestamp().
-		Logger().
-		Level(level)
+func NewLogger(level zerolog.Level) Logger {
+	return Logger{
+		log: zerolog.New(os.Stdout).
+			With().
+			Timestamp().
+			Logger().
+			Level(level),
+	}
+}
+
+func (l Logger) GetLogger() zerolog.Logger {
+	return l.log
 }

@@ -24,7 +24,7 @@ func NewRouter(service service.URLShortener, config config.Config) http.Handler 
 	r.Get("/{shortURL}", h.HandleGet)
 	r.Post("/api/shorten", h.HandlePostJSON)
 	r.Post("/", h.HandlePost)
-	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "path not found", http.StatusBadRequest)
 	}))
 

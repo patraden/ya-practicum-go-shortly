@@ -1,0 +1,89 @@
+# See https://golangci-lint.run/usage/linters/
+
+linters:
+  enable-all: true
+  disable:
+    - gomnd
+    - execinquery
+    - exportloopref
+
+linters-settings:
+  # https://github.com/OpenPeeDeeP/depguard
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        allow:
+          - $gostd
+  
+  paralleltest:
+    ignore-missing-subtests: true
+  
+  wsl:
+    # Do strict checking when assigning from append (x = append(x, y)).
+    # If this is set to true - the append call must append either a variable
+    # assigned, called or used on the line above.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#strict-append
+    # Default: true
+    strict-append: false
+    # Allow multiple var/declaration statements to be cuddled.
+    # https://github.com/bombsimon/wsl/blob/master/doc/configuration.md#allow-cuddle-declarations
+    # Default: false
+    allow-cuddle-declarations: true
+  
+  varnamelen:
+    # The longest distance, in source lines, that is being considered a "small scope".
+    # Variables used in at most this many lines will be ignored.
+    # Default: 5
+    max-distance: 15
+    # The minimum length of a variable's name that is considered "long".
+    # Variable names that are at least this long will be ignored.
+    # Default: 3
+    min-name-length: 3
+    # Optional list of variable names that should be ignored completely.
+    # Default: [
+    ignore-names:
+      - err
+    # Optional list of variable declarations that should be ignored completely.
+    # Entries must be in one of the following forms (see below for examples):
+    # - for variables, parameters, named return values, method receivers, or type parameters:
+    #   <name> <type>  (<type> can also be a pointer/slice/map/chan/...)
+    # - for constants: const <name>
+    #
+    # Default: []
+    ignore-decls:
+      - t testing.T
+      - e error
+      - i int
+      - w http.ResponseWriter
+      - r *http.Request
+
+  exhaustruct:
+    # List of regular expressions to exclude struct packages and their names from checks.
+    # Regular expressions must match complete canonical struct package/name/structname.
+    # Default: []
+    exclude:
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
+  
+  gosec:
+  # To specify a set of rules to explicitly exclude.
+  # Available rules: https://github.com/securego/gosec#available-rules
+  # Default: []
+    excludes:
+      - G404 # Insecure random number source (rand)
+      - G114 # Use of net/http serve function that has no support for setting timeouts
+  
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: -1
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: -1
+    # Ignore comments when counting lines.
+    # Default false
+    ignore-comments: true
+  
+

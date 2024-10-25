@@ -12,4 +12,5 @@ var (
 	ErrInternal   = errors.New("internal URL service error")
 	ErrInvalid    = errors.New("invalid URL format")
 	ErrDecompress = errors.New("request decompression error")
+	ErrCollision  = errors.New("URL collision")
 )

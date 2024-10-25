@@ -8,12 +8,14 @@ import (
 
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
+	"github.com/rs/zerolog"
 )
 
 func Decompress(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var reader io.ReadCloser
 		var err error
+		log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
 
 		encoding := r.Header.Get("Content-Encoding")
 		switch encoding {
@@ -26,14 +28,16 @@ func Decompress(next http.Handler) http.Handler {
 		}
 
 		if err != nil {
-			logger.Log.Error().Msg(err.Error())
+			log.Error().Msg(err.Error())
 			http.Error(w, e.ErrDecompress.Error(), http.StatusBadRequest)
+
 			return
 		}
 
 		if reader == nil {
-			logger.Log.Error().Msg("decompression not implremeneted")
+			log.Error().Msg("decompression not implremeneted")
 			http.Error(w, "decompression not implremeneted", http.StatusInternalServerError)
+
 			return
 		}
 
@@ -41,6 +45,5 @@ func Decompress(next http.Handler) http.Handler {
 		r.Body = reader
 
 		next.ServeHTTP(w, r)
-
 	})
 }

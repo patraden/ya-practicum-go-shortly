@@ -12,15 +12,14 @@ import (
 )
 
 func main() {
-	logger.Init(zerolog.InfoLevel)
+	logger.NewLogger(zerolog.InfoLevel).GetLogger()
 
 	cfg := config.LoadConfig()
-
 	service := service.NewShortenerService(cfg.URLGenTimeout)
 	r := handler.NewRouter(service, cfg)
+
 	err := http.ListenAndServe(cfg.ServerAddr, r)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }

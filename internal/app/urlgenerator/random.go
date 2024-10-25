@@ -7,33 +7,36 @@ import (
 )
 
 type RandURLGenerator struct {
-	URLGenerator
 	length int
 }
 
-func NewRandURLGenerator(len int) *RandURLGenerator {
+func NewRandURLGenerator(l int) *RandURLGenerator {
 	return &RandURLGenerator{
-		length: len,
+		length: l,
 	}
 }
 
-func (g *RandURLGenerator) GenerateURL(longURL string) string {
-	bytes := make([]byte, g.length)
-	for i := 0; i < g.length; i++ {
-		switch rand.Intn(3) {
-		case 0:
-			bytes[i] = byte(rand.Intn(26) + 65) // A-Z
-		case 1:
-			bytes[i] = byte(rand.Intn(26) + 97) // a-z
-		case 2:
-			bytes[i] = byte(rand.Intn(10) + 48) // 0-9
-		}
+func (g *RandURLGenerator) GenerateURL(_ string) string {
+	charSets := []string{
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ", // A-Z
+		"abcdefghijklmnopqrstuvwxyz", // a-z
+		"0123456789",                 // 0-9
 	}
+
+	bytes := make([]byte, g.length)
+	for i := range bytes {
+		// Randomly pick one of the character sets
+		charSet := charSets[rand.Intn(len(charSets))]
+		// Randomly pick a character from the selected set
+		bytes[i] = charSet[rand.Intn(len(charSet))]
+	}
+
 	return string(bytes)
 }
 
 func (g *RandURLGenerator) IsValidURL(shortURL string) bool {
 	regexPattern := fmt.Sprintf(`^/?[a-zA-Z0-9]{%d}$`, g.length)
 	validShortURL := regexp.MustCompile(regexPattern)
+
 	return validShortURL.MatchString(shortURL)
 }

@@ -1,25 +1,27 @@
 package mock
 
 import (
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockShortenerService struct {
-	service.URLShortener
+type ShortenerService struct {
 	mock.Mock
 }
 
-func NewMockShortenerService() *MockShortenerService {
-	return &MockShortenerService{}
+func NewShortenerService() *ShortenerService {
+	return &ShortenerService{}
 }
 
-func (m *MockShortenerService) ShortenURL(longURL string) (string, error) {
+func (m *ShortenerService) ShortenURL(longURL string) (string, error) {
 	args := m.Called(longURL)
+
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockShortenerService) GetOriginalURL(shortURL string) (string, error) {
+func (m *ShortenerService) GetOriginalURL(shortURL string) (string, error) {
 	args := m.Called(shortURL)
+
 	return args.String(0), args.Error(1)
 }
+
+// use go mock from uber
