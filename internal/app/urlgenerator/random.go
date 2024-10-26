@@ -25,9 +25,7 @@ func (g *RandURLGenerator) GenerateURL(_ string) string {
 
 	bytes := make([]byte, g.length)
 	for i := range bytes {
-		// Randomly pick one of the character sets
 		charSet := charSets[rand.Intn(len(charSets))]
-		// Randomly pick a character from the selected set
 		bytes[i] = charSet[rand.Intn(len(charSet))]
 	}
 

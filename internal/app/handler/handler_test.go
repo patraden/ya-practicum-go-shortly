@@ -14,17 +14,28 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandle(t *testing.T) {
 	t.Parallel()
 
-	mockService := mock.NewShortenerService()
+	ctrl := gomock.NewController(t)
+	mockService := mock.NewMockURLShortener(ctrl)
+	mockService.
+		EXPECT().
+		ShortenURL(gomock.Eq("https://ya.ru")).
+		Return("shortURL", nil).
+		AnyTimes()
+
+	mockService.
+		EXPECT().
+		GetOriginalURL(gomock.Eq("shortURL")).
+		Return("https://ya.ru", nil).
+		AnyTimes()
+
 	config := config.DefaultConfig()
 	router := h.NewRouter(mockService, config)
-
-	mockService.On("ShortenURL", "https://ya.ru").Return("shortURL", nil)
-	mockService.On("GetOriginalURL", "shortURL").Return("https://ya.ru", nil)
 
 	tests := []struct {
 		name   string
@@ -90,7 +101,7 @@ func TestHandlePost(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewShortenerService(config.URLGenTimeout)
+	service := service.NewInMemoryShortenerService(config)
 	handler := h.NewHandler(service, config)
 
 	type want struct {
@@ -184,7 +195,7 @@ func TestHandleGet(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewShortenerService(config.URLGenTimeout)
+	service := service.NewInMemoryShortenerService(config)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)

@@ -11,8 +11,17 @@ lint:
 	@gofumpt -w ./cmd/shortener ./internal/app
 	@golangci-lint run ./...
 
+mocks:
+	@mockgen -source=internal/app/service/shortener.go -destination=internal/app/mock/shortener.go -package=mock URLShortener
+	@mockgen -source=internal/app/repository/repository.go -destination=internal/app/mock/repository.go -package=mock URLRepository
+	@mockgen -source=internal/app/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
+
+code: mocks
+	@easyjson -all internal/app/service/url.go
+
 test:
-	@go test -v ./...
+	@go test -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out
 
 build:
 	@rm -f ./cmd/shortener/shortener

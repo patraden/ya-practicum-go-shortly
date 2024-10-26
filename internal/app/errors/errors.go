@@ -13,4 +13,43 @@ var (
 	ErrInvalid    = errors.New("invalid URL format")
 	ErrDecompress = errors.New("request decompression error")
 	ErrCollision  = errors.New("URL collision")
+	ErrTest       = errors.New("testing error")
 )
+
+type GeneralError struct {
+	Err error
+}
+
+func (e *GeneralError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *GeneralError) Unwrap() error {
+	return e.Err
+}
+
+func (e *GeneralError) Is(target error) bool {
+	_, ok := target.(*GeneralError)
+
+	return ok
+}
+
+func (e *GeneralError) As(target interface{}) bool {
+	if t, ok := target.(*GeneralError); ok {
+		*t = *e
+
+		return true
+	}
+
+	return false
+}
+
+func General(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return &GeneralError{
+		Err: err,
+	}
+}

@@ -6,6 +6,7 @@ linters:
     - gomnd
     - execinquery
     - exportloopref
+    - tparallel # redundant of paralleltest, which is configurable
 
 linters-settings:
   # https://github.com/OpenPeeDeeP/depguard
@@ -64,6 +65,7 @@ linters-settings:
     # Default: []
     exclude:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
+      - '^net/url.URL$'
   
   gosec:
   # To specify a set of rules to explicitly exclude.
@@ -85,5 +87,5 @@ linters-settings:
     # Ignore comments when counting lines.
     # Default false
     ignore-comments: true
-  
+
 
