@@ -14,6 +14,7 @@ var (
 	ErrDecompress = errors.New("request decompression error")
 	ErrCollision  = errors.New("URL collision")
 	ErrTest       = errors.New("testing error")
+	ErrUtils      = errors.New("utils error")
 )
 
 type GeneralError struct {
