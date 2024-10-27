@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mailru/easyjson"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
@@ -15,6 +16,7 @@ import (
 const (
 	ContentType     = "Content-Type"
 	ContentTypeText = "text/plain"
+	ContentTypeJSON = "application/json"
 )
 
 type Handler struct {
@@ -36,12 +38,15 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, e.ErrInvalid):
 		http.Error(w, err.Error(), http.StatusBadRequest)
+
 		return
 	case errors.Is(err, e.ErrNotFound):
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	case errors.Is(err, e.ErrInternal) || err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
@@ -54,21 +59,51 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Path != "/" || r.Body == http.NoBody || err != nil || !utils.IsURL(string(b)) {
 		http.Error(w, "bad request", http.StatusBadRequest)
+
 		return
 	}
 
 	shortURL, err := h.service.ShortenURL(string(b))
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
 	w.Header().Set(ContentType, ContentTypeText)
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(h.config.BaseURL + shortURL))
+
+	if _, err = w.Write([]byte(h.config.BaseURL + shortURL)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+}
+
+func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
+	urlReq := service.URLRequest{LongURL: ""}
+
+	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	shortURL, err := h.service.ShortenURL(urlReq.LongURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	urlResp := service.URLResponse{ShortURL: h.config.BaseURL + shortURL}
+
+	w.Header().Set(ContentType, ContentTypeJSON)
+	w.WriteHeader(http.StatusCreated)
+
+	if _, err = easyjson.MarshalToWriter(&urlResp, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 }

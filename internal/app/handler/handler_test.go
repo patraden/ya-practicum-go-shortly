@@ -1,7 +1,8 @@
-package handler
+package handler_test
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,19 +10,35 @@ import (
 	"testing"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandle(t *testing.T) {
-	mockService := mock.NewMockShortenerService()
-	mockService.On("ShortenURL", "https://ya.ru").Return("shortURL", nil)
-	mockService.On("GetOriginalURL", "shortURL").Return("https://ya.ru", nil)
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockService := mock.NewMockURLShortener(ctrl)
+	mockService.
+		EXPECT().
+		ShortenURL(gomock.Eq("https://ya.ru")).
+		Return("shortURL", nil).
+		AnyTimes()
+
+	mockService.
+		EXPECT().
+		GetOriginalURL(gomock.Eq("shortURL")).
+		Return("https://ya.ru", nil).
+		AnyTimes()
+
 	config := config.DefaultConfig()
-	r := NewRouter(mockService, config)
+	router := h.NewRouter(mockService, config)
 
 	tests := []struct {
 		name   string
@@ -60,29 +77,36 @@ func TestHandle(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, tt.path, tt.body)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(test.method, test.path, test.body)
 			w := httptest.NewRecorder()
-			r.ServeHTTP(w, request)
+
+			router.ServeHTTP(w, request)
+
 			result := w.Result()
+
 			defer result.Body.Close()
-			assert.Equal(t, tt.want, result.StatusCode)
+
+			assert.Equal(t, test.want, result.StatusCode)
+
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				location := result.Header.Get("Location")
-				assert.Equal(t, location, "https://ya.ru")
+				assert.Equal(t, "https://ya.ru", location)
 			}
-
 		})
-
 	}
-
 }
 
 func TestHandlePost(t *testing.T) {
+	t.Parallel()
+
 	config := config.DefaultConfig()
-	service := service.NewShortenerService(config.URLGenTimeout)
-	h := NewHandler(service, config)
+	service := service.NewInMemoryShortenerService(config)
+	handler := h.NewHandler(service, config)
+
 	type want struct {
 		status int
 		isURL  bool
@@ -98,7 +122,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 1",
 			body:        `https://ya.ru`,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusCreated,
 				isURL:  true,
@@ -108,7 +132,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 2",
 			body:        ``,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -118,7 +142,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 3",
 			body:        `//ya.ru`,
 			path:        `/`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -128,7 +152,7 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 4",
 			body:        `https://ya.ru`,
 			path:        `/a/b/c`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
@@ -138,44 +162,115 @@ func TestHandlePost(t *testing.T) {
 			name:        "test 5",
 			body:        `https://ya.ru`,
 			path:        `//`,
-			contentType: ContentTypeText,
+			contentType: h.ContentTypeText,
 			want: want{
 				status: http.StatusBadRequest,
 				isURL:  false,
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.body))
-			request.Header.Add(ContentType, tt.contentType)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+			request.Header.Add(h.ContentType, test.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(h.HandlePost)
+			h := http.HandlerFunc(handler.HandlePost)
 			h(w, request)
 
 			result := w.Result()
 			shortURL, err := io.ReadAll(result.Body)
+
 			require.NoError(t, err)
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.want.status, result.StatusCode)
-			assert.Equal(t, tt.want.isURL, utils.IsURL(string(shortURL)))
+			assert.Equal(t, test.want.status, result.StatusCode)
+			assert.Equal(t, test.want.isURL, utils.IsURL(string(shortURL)))
 		})
 	}
+}
 
+func TestHandlePostJSON(t *testing.T) {
+	t.Parallel()
+
+	config := config.DefaultConfig()
+	service := service.NewInMemoryShortenerService(config)
+	handler := h.NewHandler(service, config).HandlePostJSON
+
+	type want struct {
+		status int
+		isURL  bool
+	}
+
+	tests := []struct {
+		name        string
+		body        string
+		contentType string
+		want        want
+	}{
+		{
+			name:        `test 1`,
+			body:        `{"url":"https://practicum.yandex.ru"}`,
+			contentType: h.ContentTypeJSON,
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+		{
+			name:        `test 2`,
+			body:        `{"url:"https://practicum.yandex.ru"}`,
+			contentType: h.ContentTypeJSON,
+			want: want{
+				status: http.StatusBadRequest,
+				isURL:  false,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodPost, `/api/shorten`, strings.NewReader(test.body))
+			request.Header.Add(h.ContentType, test.contentType)
+
+			w := httptest.NewRecorder()
+			h := http.HandlerFunc(handler)
+			h(w, request)
+
+			result := w.Result()
+
+			assert.Equal(t, test.want.status, result.StatusCode)
+
+			if test.want.isURL {
+				var responseBody map[string]string
+
+				err := json.NewDecoder(result.Body).Decode(&responseBody)
+				require.NoError(t, err)
+
+				err = result.Body.Close()
+				require.NoError(t, err)
+
+				assert.Equal(t, test.want.isURL, utils.IsURL(responseBody["result"]))
+			}
+		})
+	}
 }
 
 func TestHandleGet(t *testing.T) {
+	t.Parallel()
+
 	config := config.DefaultConfig()
-	service := service.NewShortenerService(config.URLGenTimeout)
+	service := service.NewInMemoryShortenerService(config)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
-	r := NewRouter(service, config)
-
-	fmt.Println("=====>", serverAddr+shortURL)
+	router := h.NewRouter(service, config)
 
 	type want struct {
 		status   int
@@ -203,19 +298,125 @@ func TestHandleGet(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			t.Parallel()
 
+			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			w := httptest.NewRecorder()
-			r.ServeHTTP(w, request)
+
+			router.ServeHTTP(w, request)
 
 			result := w.Result()
 			defer result.Body.Close()
+
 			assert.Equal(t, tt.want.status, result.StatusCode)
+
 			if result.StatusCode == http.StatusTemporaryRedirect {
 				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
 			}
 		})
+	}
+}
+
+func TestHandlePostCompression(t *testing.T) {
+	t.Parallel()
+
+	config := config.DefaultConfig()
+	service := service.NewInMemoryShortenerService(config)
+	h := http.HandlerFunc(h.NewHandler(service, config).HandlePost)
+	hd := middleware.Compress()(h)
+	hdc := middleware.Decompress()(hd)
+
+	type want struct {
+		status int
+		isURL  bool
+	}
+	tests := []struct {
+		name            string
+		contentEncoding string
+		acceptEncoding  string
+		want            want
+	}{
+		{
+			name:            "test 1",
+			contentEncoding: "gzip",
+			acceptEncoding:  "",
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+		{
+			name:            "test 2",
+			contentEncoding: "deflate",
+			acceptEncoding:  "",
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+		{
+			name:            "test 3",
+			contentEncoding: "gzip",
+			acceptEncoding:  "deflate",
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+		{
+			name:            "test 4",
+			contentEncoding: "deflate",
+			acceptEncoding:  "gzip",
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+		{
+			name:            "test 5",
+			contentEncoding: "",
+			acceptEncoding:  "",
+			want: want{
+				status: http.StatusCreated,
+				isURL:  true,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		for range 10 {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				url := utils.RandURL()
+
+				data, err := utils.Compress([]byte(url), test.contentEncoding)
+				require.NoError(t, err)
+
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(data))
+
+				r.Header.Set("Content-Encoding", test.contentEncoding)
+				r.Header.Set("Accept-Encoding", test.acceptEncoding)
+
+				hdc.ServeHTTP(w, r)
+
+				result := w.Result()
+				compressedURL, err := io.ReadAll(result.Body)
+				require.NoError(t, err)
+
+				shortURL, err := utils.Decompress(compressedURL, test.acceptEncoding)
+				require.NoError(t, err)
+
+				err = result.Body.Close()
+				require.NoError(t, err)
+
+				assert.Equal(t, test.want.status, result.StatusCode)
+				assert.Equal(t, test.want.isURL, utils.IsURL(string(shortURL)))
+			})
+		}
 	}
 }
