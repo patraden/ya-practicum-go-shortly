@@ -34,6 +34,7 @@ func (b *builder) loadFlagsConfig() {
 
 	flag.StringVar(&b.flags.ServerAddr, "a", cfg.ServerAddr, "server address {host}:{port}")
 	flag.StringVar(&b.flags.BaseURL, "b", cfg.BaseURL, "base url {base url}/{short link}")
+	flag.StringVar(&b.flags.FileStoragePath, "f", cfg.FileStoragePath, "url storage file path")
 	flag.Parse()
 }
 
@@ -68,6 +69,14 @@ func (b *builder) getConfig() Config {
 
 	if !strings.HasSuffix(cfg.BaseURL, "/") {
 		cfg.BaseURL += "/"
+	}
+
+	// handle Base URL
+	switch {
+	case b.env.FileStoragePath != cfg.FileStoragePath:
+		cfg.FileStoragePath = b.env.FileStoragePath
+	case b.flags.FileStoragePath != cfg.FileStoragePath:
+		cfg.FileStoragePath = b.flags.FileStoragePath
 	}
 
 	return cfg

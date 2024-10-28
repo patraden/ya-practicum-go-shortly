@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/google/uuid"
 )
 
 func IsURL(longURL string) bool {
@@ -71,4 +72,8 @@ func RandURL() string {
 	u.RawQuery = q.Encode()
 
 	return u.String()
+}
+
+func UUID() string {
+	return uuid.New().String()
 }

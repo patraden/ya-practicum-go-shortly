@@ -3,6 +3,7 @@
 VETTOOL ?= $(shell which statictest)
 SOURCE_PATH ?= ${CURDIR}
 BINARY_PATH ?= cmd/shortener/shortener
+TEMP_FILE ?= data/records.json
 
 vet:
 	@go vet -vettool=$(VETTOOL) ./...
@@ -18,6 +19,8 @@ mocks:
 
 code: mocks
 	@easyjson -all internal/app/service/url.go
+	@easyjson -all internal/app/repository/file/record.go
+
 
 test:
 	@go test -coverprofile=coverage.out ./...
@@ -43,4 +46,6 @@ shortenertest: build
 	@echo "Running increment7 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration7\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH)
 	@echo "Running increment8 test"
-	@shortenertestbeta -test.v -test.run=\^TestIteration8\$$ -binary-path=$(BINARY_PATH)
+	@shortenertestbeta -test.v -test.run=\^TestIteration8\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH)
+	@echo "Running increment9 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration9\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -file-storage-path=$(TEMP_FILE)

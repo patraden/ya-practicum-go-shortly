@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
@@ -12,14 +11,14 @@ import (
 )
 
 func main() {
-	logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 
 	cfg := config.LoadConfig()
-	service := service.NewInMemoryShortenerService(cfg)
+	service := service.NewInFileShortenerService(cfg, log)
 	r := handler.NewRouter(service, cfg)
 
 	err := http.ListenAndServe(cfg.ServerAddr, r)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Send()
 	}
 }

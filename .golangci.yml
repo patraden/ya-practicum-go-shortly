@@ -65,7 +65,9 @@ linters-settings:
     # Default: []
     exclude:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/repository/file\.Record$'
       - '^net/url.URL$'
+
   
   gosec:
   # To specify a set of rules to explicitly exclude.
@@ -87,5 +89,15 @@ linters-settings:
     # Ignore comments when counting lines.
     # Default false
     ignore-comments: true
+  
+  tagliatelle:
+    # Check the struct tag name case.
+    case:
+      # `camel` is used for `json` and `yaml`, and `header` is used for `header` (can be overridden)
+      # Default: {}
+      rules:
+        # Any struct tag type can be used.
+        # Support string case: `camel`, `pascal`, `kebab`, `snake`, `upperSnake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`, `header`
+        json: snake
 
 

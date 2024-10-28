@@ -2,6 +2,7 @@ package errors
 
 import (
 	"errors"
+	"fmt"
 )
 
 var (
@@ -15,42 +16,9 @@ var (
 	ErrCollision  = errors.New("URL collision")
 	ErrTest       = errors.New("testing error")
 	ErrUtils      = errors.New("utils error")
+	ErrRepoFile   = errors.New("file repo error")
 )
 
-type GeneralError struct {
-	Err error
-}
-
-func (e *GeneralError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *GeneralError) Unwrap() error {
-	return e.Err
-}
-
-func (e *GeneralError) Is(target error) bool {
-	_, ok := target.(*GeneralError)
-
-	return ok
-}
-
-func (e *GeneralError) As(target interface{}) bool {
-	if t, ok := target.(*GeneralError); ok {
-		*t = *e
-
-		return true
-	}
-
-	return false
-}
-
-func General(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	return &GeneralError{
-		Err: err,
-	}
+func Wrap(isErr error, asErr error) error {
+	return fmt.Errorf("%s: %w", asErr.Error(), isErr)
 }

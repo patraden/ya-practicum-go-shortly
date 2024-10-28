@@ -2,10 +2,15 @@ package repository_test
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository/file"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 type want struct {
@@ -19,32 +24,8 @@ type test struct {
 	want     want
 }
 
-func RunAddURLRepositoryTests(t *testing.T, repo repository.URLRepository, test test) {
+func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 	t.Helper()
-
-	t.Run(test.name, func(t *testing.T) {
-		if err := repo.AddURL(test.shortURL, test.longURL); !errors.Is(err, test.want.err) {
-			t.Errorf("AddURL test failed: shortURL %s, longURL %s", test.shortURL, test.longURL)
-		}
-	})
-}
-
-func RunGetURLRepositoryTests(t *testing.T, repo repository.URLRepository, test test) {
-	t.Helper()
-
-	t.Run(test.name, func(t *testing.T) {
-		t.Parallel()
-
-		if longURL, err := repo.GetURL(test.shortURL); !errors.Is(err, test.want.err) || longURL != test.want.longURL {
-			t.Errorf("GetURL test failed: shortURL %s, longURL %s", test.shortURL, test.longURL)
-		}
-	})
-}
-
-func TestInMemoryURLRepository(t *testing.T) {
-	t.Parallel()
-
-	repo := repository.NewInMemoryURLRepository()
 
 	addURLTests := []test{
 		{
@@ -77,7 +58,12 @@ func TestInMemoryURLRepository(t *testing.T) {
 	}
 
 	for _, test := range addURLTests {
-		RunAddURLRepositoryTests(t, repo, test)
+		t.Run(test.name, func(t *testing.T) {
+			err := repo.AddURL(test.shortURL, test.longURL)
+			if !errors.Is(err, test.want.err) {
+				t.Errorf("AddURL test failed: shortURL %s, longURL %s, err: %v", test.shortURL, test.longURL, err)
+			}
+		})
 	}
 
 	getURLTests := []test{
@@ -111,6 +97,32 @@ func TestInMemoryURLRepository(t *testing.T) {
 	}
 
 	for _, test := range getURLTests {
-		RunGetURLRepositoryTests(t, repo, test)
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			longURL, err := repo.GetURL(test.shortURL)
+			if !errors.Is(err, test.want.err) || longURL != test.want.longURL {
+				t.Errorf("GetURL test failed: shortURL %s, longURL %s, err: %v", test.shortURL, test.longURL, err)
+			}
+		})
 	}
+}
+
+func TestInMemoryURLRepository(t *testing.T) {
+	t.Parallel()
+
+	repo := repository.NewInMemoryURLRepository()
+	RunRepositoryTests(t, repo)
+}
+
+func TestInFileURLRepository(t *testing.T) {
+	t.Parallel()
+
+	fileName := "file/records.json"
+	defer os.Remove(fileName)
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	repo := file.NewInFileURLRepository(fileName, log)
+	require.NotNil(t, repo)
+	RunRepositoryTests(t, repo)
 }

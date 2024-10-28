@@ -7,8 +7,10 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository/file"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
+	"github.com/rs/zerolog"
 )
 
 type ShortenerService struct {
@@ -27,6 +29,14 @@ func NewShortenerService(
 		urlGenerator: urlgen,
 		config:       config,
 	}
+}
+
+func NewInFileShortenerService(config config.Config, log zerolog.Logger) *ShortenerService {
+	return NewShortenerService(
+		file.NewInFileURLRepository(config.FileStoragePath, log),
+		urlgenerator.NewRandURLGenerator(config.URLsize),
+		config,
+	)
 }
 
 func NewInMemoryShortenerService(config config.Config) *ShortenerService {
