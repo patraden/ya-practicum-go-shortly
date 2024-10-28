@@ -23,4 +23,4 @@ vendor/
 .vscode
 
 # Data records
-data/records.json
+test/records.json

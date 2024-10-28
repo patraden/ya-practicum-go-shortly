@@ -21,7 +21,7 @@ func DefaultConfig() Config {
 	return Config{
 		ServerAddr:          `localhost:8080`,
 		BaseURL:             `http://localhost:8080/`,
-		FileStoragePath:     `data/records.json`,
+		FileStoragePath:     `test/records.json`,
 		URLGenTimeout:       defaultURLGenTimeout,
 		URLGenRetryInterval: defaultURLGenRetryInterval,
 		URLsize:             defaultURLSize,

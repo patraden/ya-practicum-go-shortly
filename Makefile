@@ -3,7 +3,7 @@
 VETTOOL ?= $(shell which statictest)
 SOURCE_PATH ?= ${CURDIR}
 BINARY_PATH ?= cmd/shortener/shortener
-TEMP_FILE ?= data/records.json
+TEMP_FILE ?= test/records.json
 
 vet:
 	@go vet -vettool=$(VETTOOL) ./...
