@@ -22,5 +22,5 @@ vendor/
 .idea
 .vscode
 
-# Data fiels
-data/
+# Data records
+data/records.json
