@@ -21,7 +21,7 @@ func main() {
 	config := config.LoadConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := server.NewServer(repo, gen, config, log)
+	srv := server.NewServer(repo, gen, config)
 	manager := repository.NewStateManager(config, log)
 
 	// Initialize repository with the help of repo state manager.
