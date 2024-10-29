@@ -1,4 +1,4 @@
-package service
+package handler
 
 //go:generate easyjson -all url.go
 type URLRequest struct {

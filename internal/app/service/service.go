@@ -7,47 +7,29 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository/file"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
-	"github.com/rs/zerolog"
 )
 
-type ShortenerService struct {
+type URLShortener struct {
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
-	config       config.Config
+	config       *config.Config
 }
 
 func NewShortenerService(
 	repo repository.URLRepository,
-	urlgen urlgenerator.URLGenerator,
-	config config.Config,
-) *ShortenerService {
-	return &ShortenerService{
+	gen urlgenerator.URLGenerator,
+	config *config.Config,
+) *URLShortener {
+	return &URLShortener{
 		repo:         repo,
-		urlGenerator: urlgen,
+		urlGenerator: gen,
 		config:       config,
 	}
 }
 
-func NewInFileShortenerService(config config.Config, log zerolog.Logger) *ShortenerService {
-	return NewShortenerService(
-		file.NewInFileURLRepository(config.FileStoragePath, log),
-		urlgenerator.NewRandURLGenerator(config.URLsize),
-		config,
-	)
-}
-
-func NewInMemoryShortenerService(config config.Config) *ShortenerService {
-	return NewShortenerService(
-		repository.NewInMemoryURLRepository(),
-		urlgenerator.NewRandURLGenerator(config.URLsize),
-		config,
-	)
-}
-
-func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
+func (s *URLShortener) ShortenURL(longURL string) (string, error) {
 	// always assume that url generation is an non-injective function.
 	// timeout based backoff is the basic mechanism to address collisions.
 	// in case of high rates of collisions errors,
@@ -61,44 +43,44 @@ func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
 		_, err = s.repo.GetURL(shortURL)
 
 		switch {
-		case errors.Is(err, e.ErrNotFound):
+		case errors.Is(err, e.ErrRepoNotFound):
 			return nil
 		case err != nil:
 			return backoff.Permanent(err)
 		default:
-			return e.ErrCollision
+			return e.ErrServiceCollision
 		}
 	}
 
 	err = backoff.Retry(operation, b)
-	if errors.Is(err, e.ErrCollision) {
-		return "", e.ErrCollision
+	if errors.Is(err, e.ErrServiceCollision) {
+		return "", e.ErrServiceCollision
 	}
 
 	if err != nil {
-		return "", e.ErrInternal
+		return "", e.ErrServiceInternal
 	}
 
 	if err = s.repo.AddURL(shortURL, longURL); err != nil {
-		return "", e.ErrInternal
+		return "", e.ErrServiceInternal
 	}
 
 	return shortURL, nil
 }
 
-func (s *ShortenerService) GetOriginalURL(shortURL string) (string, error) {
+func (s *URLShortener) GetOriginalURL(shortURL string) (string, error) {
 	if !s.urlGenerator.IsValidURL(shortURL) {
-		return "", e.ErrInvalid
+		return "", e.ErrServiceInvalid
 	}
 
 	longURL, err := s.repo.GetURL(shortURL)
 
-	if errors.Is(err, e.ErrNotFound) {
-		return "", e.ErrNotFound
+	if errors.Is(err, e.ErrRepoNotFound) {
+		return "", e.ErrRepoNotFound
 	}
 
 	if err != nil {
-		return "", e.ErrInternal
+		return "", e.ErrServiceInternal
 	}
 
 	return longURL, nil

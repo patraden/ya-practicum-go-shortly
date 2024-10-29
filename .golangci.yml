@@ -65,8 +65,9 @@ linters-settings:
     # Default: []
     exclude:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
-      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/repository/file\.Record$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/repository\.FileRecord$'
       - '^net/url.URL$'
+      - '^net/http.Server$'
 
   
   gosec:
@@ -76,6 +77,7 @@ linters-settings:
     excludes:
       - G404 # Insecure random number source (rand)
       - G114 # Use of net/http serve function that has no support for setting timeouts
+      - G112 # Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
   
   funlen:
     # Checks the number of lines in a function.

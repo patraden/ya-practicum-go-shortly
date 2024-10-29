@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mailru/easyjson"
+	easyjson "github.com/mailru/easyjson"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
@@ -20,11 +20,11 @@ const (
 )
 
 type Handler struct {
-	service service.URLShortener
-	config  config.Config
+	service *service.URLShortener
+	config  *config.Config
 }
 
-func NewHandler(service service.URLShortener, config config.Config) *Handler {
+func NewHandler(service *service.URLShortener, config *config.Config) *Handler {
 	return &Handler{
 		service: service,
 		config:  config,
@@ -36,15 +36,15 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	longURL, err := h.service.GetOriginalURL(shortURL)
 
 	switch {
-	case errors.Is(err, e.ErrInvalid):
+	case errors.Is(err, e.ErrServiceInvalid):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
 		return
-	case errors.Is(err, e.ErrNotFound):
+	case errors.Is(err, e.ErrRepoNotFound):
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 		return
-	case errors.Is(err, e.ErrInternal) || err != nil:
+	case errors.Is(err, e.ErrServiceInternal) || err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
@@ -81,7 +81,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
-	urlReq := service.URLRequest{LongURL: ""}
+	urlReq := URLRequest{LongURL: ""}
 
 	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -96,7 +96,7 @@ func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlResp := service.URLResponse{ShortURL: h.config.BaseURL + shortURL}
+	urlResp := URLResponse{ShortURL: h.config.BaseURL + shortURL}
 
 	w.Header().Set(ContentType, ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)

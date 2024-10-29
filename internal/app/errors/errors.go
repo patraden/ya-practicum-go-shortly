@@ -2,23 +2,27 @@ package errors
 
 import (
 	"errors"
-	"fmt"
+)
+
+const (
+	WrapOpenFile      = "unable to open file %s: %w"
+	WrapCloseFile     = "unable to close file %s: %w"
+	WrapUnmarchalJSON = "unable to unmarchal from json: %w"
+	WrapMarchalJSON   = "unable to marchal to json: %w"
+	WrapFileRead      = "file reader error: %w"
+	WrapFileReset     = "file reader reset: %w"
+	WrapFileWrite     = "file writer error: %w"
 )
 
 var (
-	ErrParams     = errors.New("invalid config parameter")
-	ErrEnvParse   = errors.New("env config parsing error")
-	ErrNotFound   = errors.New("URL not found in repository")
-	ErrExists     = errors.New("URL exists in repository")
-	ErrInternal   = errors.New("internal URL service error")
-	ErrInvalid    = errors.New("invalid URL format")
-	ErrDecompress = errors.New("request decompression error")
-	ErrCollision  = errors.New("URL collision")
-	ErrTest       = errors.New("testing error")
-	ErrUtils      = errors.New("utils error")
-	ErrRepoFile   = errors.New("file repo error")
+	ErrRepoNotFound     = errors.New("repository: URL not found")
+	ErrRepoExists       = errors.New("repository: URL exists")
+	ErrConfParams       = errors.New("config: invalid config parameter")
+	ErrConfEnv          = errors.New("config: env parsing error")
+	ErrServiceInternal  = errors.New("service: internal error")
+	ErrServiceInvalid   = errors.New("service: invalid URL")
+	ErrServiceCollision = errors.New("service: URL collision")
+	ErrDecompress       = errors.New("request decompression error")
+	ErrTest             = errors.New("testing error")
+	ErrUtils            = errors.New("utils error")
 )
-
-func Wrap(isErr error, asErr error) error {
-	return fmt.Errorf("%s: %w", asErr.Error(), isErr)
-}

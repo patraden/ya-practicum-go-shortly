@@ -2,14 +2,11 @@ package repository_test
 
 import (
 	"errors"
-	"os"
 	"testing"
 
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository/file"
-	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,7 +48,7 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 			shortURL: "a",
 			longURL:  "b",
 			want: want{
-				err:     e.ErrExists,
+				err:     e.ErrRepoExists,
 				longURL: "",
 			},
 		},
@@ -90,7 +87,7 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 			shortURL: "c",
 			longURL:  "d",
 			want: want{
-				err:     e.ErrNotFound,
+				err:     e.ErrRepoNotFound,
 				longURL: "",
 			},
 		},
@@ -106,23 +103,35 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 			}
 		})
 	}
+
+	t.Run("memento test", func(t *testing.T) {
+		t.Parallel()
+
+		memento, err := repo.CreateMemento()
+		require.NoError(t, err)
+
+		state := memento.GetState()
+		before := len(state)
+
+		state["newURL"] = "newURL"
+
+		memento = repository.NewURLRepositoryState(state)
+		err = repo.RestoreMemento(memento)
+		require.NoError(t, err)
+
+		memento, err = repo.CreateMemento()
+		require.NoError(t, err)
+
+		state = memento.GetState()
+		after := len(state)
+
+		assert.Equal(t, before+1, after)
+	})
 }
 
 func TestInMemoryURLRepository(t *testing.T) {
 	t.Parallel()
 
 	repo := repository.NewInMemoryURLRepository()
-	RunRepositoryTests(t, repo)
-}
-
-func TestInFileURLRepository(t *testing.T) {
-	t.Parallel()
-
-	fileName := "file/records.json"
-	defer os.Remove(fileName)
-
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	repo := file.NewInFileURLRepository(fileName, log)
-	require.NotNil(t, repo)
 	RunRepositoryTests(t, repo)
 }

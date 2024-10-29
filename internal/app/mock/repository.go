@@ -12,6 +12,7 @@ package mock
 import (
 	reflect "reflect"
 
+	repository "github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -53,6 +54,21 @@ func (mr *MockURLRepositoryMockRecorder) AddURL(shortURL, longURL any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURL", reflect.TypeOf((*MockURLRepository)(nil).AddURL), shortURL, longURL)
 }
 
+// CreateMemento mocks base method.
+func (m *MockURLRepository) CreateMemento() (*repository.Memento, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMemento")
+	ret0, _ := ret[0].(*repository.Memento)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateMemento indicates an expected call of CreateMemento.
+func (mr *MockURLRepositoryMockRecorder) CreateMemento() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMemento", reflect.TypeOf((*MockURLRepository)(nil).CreateMemento))
+}
+
 // DelURL mocks base method.
 func (m *MockURLRepository) DelURL(shortURL string) error {
 	m.ctrl.T.Helper()
@@ -80,4 +96,18 @@ func (m *MockURLRepository) GetURL(shortURL string) (string, error) {
 func (mr *MockURLRepositoryMockRecorder) GetURL(shortURL any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockURLRepository)(nil).GetURL), shortURL)
+}
+
+// RestoreMemento mocks base method.
+func (m_2 *MockURLRepository) RestoreMemento(m *repository.Memento) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RestoreMemento", m)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RestoreMemento indicates an expected call of RestoreMemento.
+func (mr *MockURLRepositoryMockRecorder) RestoreMemento(m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreMemento", reflect.TypeOf((*MockURLRepository)(nil).RestoreMemento), m)
 }

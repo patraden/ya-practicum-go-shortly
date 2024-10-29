@@ -12,33 +12,25 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestHandle(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	mockService := mock.NewMockURLShortener(ctrl)
-	mockService.
-		EXPECT().
-		ShortenURL(gomock.Eq("https://ya.ru")).
-		Return("shortURL", nil).
-		AnyTimes()
-
-	mockService.
-		EXPECT().
-		GetOriginalURL(gomock.Eq("shortURL")).
-		Return("https://ya.ru", nil).
-		AnyTimes()
-
 	config := config.DefaultConfig()
-	router := h.NewRouter(mockService, config)
+	repo := repository.NewInMemoryURLRepository()
+	err := repo.AddURL("shortURL", "https://ya.ru")
+	require.NoError(t, err)
+
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
+	router := h.NewRouter(service, config)
 
 	tests := []struct {
 		name   string
@@ -104,7 +96,9 @@ func TestHandlePost(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewInMemoryShortenerService(config)
+	repo := repository.NewInMemoryURLRepository()
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
 	handler := h.NewHandler(service, config)
 
 	type want struct {
@@ -198,7 +192,9 @@ func TestHandlePostJSON(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewInMemoryShortenerService(config)
+	repo := repository.NewInMemoryURLRepository()
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
 	handler := h.NewHandler(service, config).HandlePostJSON
 
 	type want struct {
@@ -266,7 +262,9 @@ func TestHandleGet(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewInMemoryShortenerService(config)
+	repo := repository.NewInMemoryURLRepository()
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
@@ -324,7 +322,9 @@ func TestHandlePostCompression(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
-	service := service.NewInMemoryShortenerService(config)
+	repo := repository.NewInMemoryURLRepository()
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
 	h := http.HandlerFunc(h.NewHandler(service, config).HandlePost)
 	hd := middleware.Compress()(h)
 	hdc := middleware.Decompress()(hd)

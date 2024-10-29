@@ -11,8 +11,8 @@ import (
 )
 
 type builder struct {
-	env   Config
-	flags Config
+	env   *Config
+	flags *Config
 }
 
 func newBuilder() *builder {
@@ -23,9 +23,9 @@ func newBuilder() *builder {
 }
 
 func (b *builder) loadEnvConfig() {
-	err := env.Parse(&b.env)
+	err := env.Parse(b.env)
 	if err != nil {
-		log.Fatal(e.ErrEnvParse)
+		log.Fatal(e.ErrConfEnv)
 	}
 }
 
@@ -38,7 +38,7 @@ func (b *builder) loadFlagsConfig() {
 	flag.Parse()
 }
 
-func (b *builder) getConfig() Config {
+func (b *builder) getConfig() *Config {
 	cfg := DefaultConfig()
 
 	// handle Server Address
@@ -51,7 +51,7 @@ func (b *builder) getConfig() Config {
 
 	// validate Server Address
 	if !utils.IsServerAddress(cfg.ServerAddr) {
-		log.Fatal(e.ErrParams)
+		log.Fatal(e.ErrConfParams)
 	}
 
 	// handle Base URL
@@ -64,7 +64,7 @@ func (b *builder) getConfig() Config {
 
 	// validate Base URL
 	if !utils.IsURL(cfg.BaseURL) {
-		log.Fatal(e.ErrParams)
+		log.Fatal(e.ErrConfParams)
 	}
 
 	if !strings.HasSuffix(cfg.BaseURL, "/") {

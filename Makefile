@@ -13,13 +13,12 @@ lint:
 	@golangci-lint run ./...
 
 mocks:
-	@mockgen -source=internal/app/service/shortener.go -destination=internal/app/mock/shortener.go -package=mock URLShortener
 	@mockgen -source=internal/app/repository/repository.go -destination=internal/app/mock/repository.go -package=mock URLRepository
 	@mockgen -source=internal/app/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
 
 code: mocks
-	@easyjson -all internal/app/service/url.go
-	@easyjson -all internal/app/repository/file/record.go
+	@easyjson -all internal/app/handler/url.go
+	@easyjson -all internal/app/repository/record.go
 
 
 test:
