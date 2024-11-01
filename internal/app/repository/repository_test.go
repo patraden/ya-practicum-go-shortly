@@ -21,37 +21,13 @@ type test struct {
 	want     want
 }
 
-func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
+func testAddURL(t *testing.T, repo repository.URLRepository) {
 	t.Helper()
 
 	addURLTests := []test{
-		{
-			name:     "test 1",
-			shortURL: "a",
-			longURL:  "b",
-			want: want{
-				err:     nil,
-				longURL: "",
-			},
-		},
-		{
-			name:     "test 2",
-			shortURL: "b",
-			longURL:  "c",
-			want: want{
-				err:     nil,
-				longURL: "",
-			},
-		},
-		{
-			name:     "test 3",
-			shortURL: "a",
-			longURL:  "b",
-			want: want{
-				err:     e.ErrRepoExists,
-				longURL: "",
-			},
-		},
+		{"test 1", "b", "a", want{nil, ""}},
+		{"test 2", "c", "b", want{nil, ""}},
+		{"test 3", "b", "a", want{e.ErrRepoExists, ""}},
 	}
 
 	for _, test := range addURLTests {
@@ -62,35 +38,15 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 			}
 		})
 	}
+}
+
+func testGetURL(t *testing.T, repo repository.URLRepository) {
+	t.Helper()
 
 	getURLTests := []test{
-		{
-			name:     "test 1",
-			shortURL: "a",
-			longURL:  "b",
-			want: want{
-				err:     nil,
-				longURL: "b",
-			},
-		},
-		{
-			name:     "test 2",
-			shortURL: "b",
-			longURL:  "c",
-			want: want{
-				err:     nil,
-				longURL: "c",
-			},
-		},
-		{
-			name:     "test 3",
-			shortURL: "c",
-			longURL:  "d",
-			want: want{
-				err:     e.ErrRepoNotFound,
-				longURL: "",
-			},
-		},
+		{"test 1", "b", "a", want{nil, "b"}},
+		{"test 2", "c", "b", want{nil, "c"}},
+		{"test 3", "d", "c", want{e.ErrRepoNotFound, ""}},
 	}
 
 	for _, test := range getURLTests {
@@ -99,10 +55,17 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 
 			longURL, err := repo.GetURL(test.shortURL)
 			if !errors.Is(err, test.want.err) || longURL != test.want.longURL {
-				t.Errorf("GetURL test failed: shortURL %s, longURL %s, err: %v", test.shortURL, test.longURL, err)
+				t.Errorf(
+					"GetURL test failed: shortURL %s, expected longURL %s, got longURL %s, err: %v",
+					test.shortURL, test.want.longURL, longURL, err,
+				)
 			}
 		})
 	}
+}
+
+func testMemento(t *testing.T, repo repository.URLRepository) {
+	t.Helper()
 
 	t.Run("memento test", func(t *testing.T) {
 		t.Parallel()
@@ -114,8 +77,8 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 		before := len(state)
 
 		state["newURL"] = "newURL"
-
 		memento = repository.NewURLRepositoryState(state)
+
 		err = repo.RestoreMemento(memento)
 		require.NoError(t, err)
 
@@ -129,9 +92,17 @@ func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
 	})
 }
 
+func RunRepositoryTests(t *testing.T, repo repository.URLRepository) {
+	t.Helper()
+	testAddURL(t, repo)
+	testGetURL(t, repo)
+	testMemento(t, repo)
+}
+
 func TestInMemoryURLRepository(t *testing.T) {
 	t.Parallel()
 
 	repo := repository.NewInMemoryURLRepository()
+
 	RunRepositoryTests(t, repo)
 }

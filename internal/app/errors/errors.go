@@ -12,6 +12,7 @@ const (
 	WrapFileRead      = "file reader error: %w"
 	WrapFileReset     = "file reader reset: %w"
 	WrapFileWrite     = "file writer error: %w"
+	WrapURLGen        = "URL generate error: %w"
 )
 
 var (

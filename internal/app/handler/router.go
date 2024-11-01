@@ -7,17 +7,18 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
+	"github.com/rs/zerolog"
 )
 
-func NewRouter(service *service.URLShortener, config *config.Config) http.Handler {
-	handler := NewHandler(service, config)
+func NewRouter(srv *service.URLShortener, cfg *config.Config, log zerolog.Logger) http.Handler {
+	handler := NewHandler(srv, cfg, log)
 	router := chi.NewRouter()
 
 	router.Use(middleware.Recoverer())
 	router.Use(middleware.StripSlashes())
 	router.Use(middleware.Compress())
 	router.Use(middleware.Decompress())
-	router.Use(middleware.Logger())
+	router.Use(middleware.Logger(log))
 
 	router.Get("/{shortURL}", handler.HandleGet)
 	router.Post("/api/shorten", handler.HandlePostJSON)

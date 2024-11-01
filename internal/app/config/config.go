@@ -1,33 +1,46 @@
 package config
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	defaultURLGenTimeout       = time.Duration(2) * time.Second
-	defaultURLGenRetryInterval = time.Duration(100) * time.Millisecond
+	defaultURLGenTimeout       = 2 * time.Second
+	defaultURLGenRetryInterval = 100 * time.Millisecond
+	serverShutdownTimeout      = 5 * time.Second
+	defaultReadHeaderTimeout   = 10 * time.Second  // Maximum duration to read request headers
+	defaultWriteTimeout        = 10 * time.Second  // Maximum duration to write response
+	defaultIdleTimeout         = 120 * time.Second // Maximum duration for idle connections
 	defaultURLSize             = 8
-	serverShutdownTimeout      = time.Duration(5) * time.Second
 )
 
 type Config struct {
-	ServerAddr          string `env:"SERVER_ADDRESS"`
-	BaseURL             string `env:"BASE_URL"`
-	FileStoragePath     string `env:"FILE_STORAGE_PATH"`
-	URLGenTimeout       time.Duration
-	URLGenRetryInterval time.Duration
-	ServerShutTimeout   time.Duration
-	URLsize             int
+	ServerAddr              string `env:"SERVER_ADDRESS"`
+	BaseURL                 string `env:"BASE_URL"`
+	FileStoragePath         string `env:"FILE_STORAGE_PATH"`
+	URLGenTimeout           time.Duration
+	URLGenRetryInterval     time.Duration
+	URLsize                 int
+	ServerShutTimeout       time.Duration
+	ServerReadHeaderTimeout time.Duration
+	ServerWriteTimeout      time.Duration
+	ServerIdleTimeout       time.Duration
+	ForceEmptyRepo          bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		ServerAddr:          `localhost:8080`,
-		BaseURL:             `http://localhost:8080/`,
-		FileStoragePath:     `data/service_storage.json`,
-		URLGenTimeout:       defaultURLGenTimeout,
-		URLGenRetryInterval: defaultURLGenRetryInterval,
-		ServerShutTimeout:   serverShutdownTimeout,
-		URLsize:             defaultURLSize,
+		ServerAddr:              `localhost:8080`,
+		BaseURL:                 `http://localhost:8080/`,
+		FileStoragePath:         `data/service_storage.json`,
+		URLGenTimeout:           defaultURLGenTimeout,
+		URLGenRetryInterval:     defaultURLGenRetryInterval,
+		URLsize:                 defaultURLSize,
+		ServerShutTimeout:       serverShutdownTimeout,
+		ServerReadHeaderTimeout: defaultReadHeaderTimeout,
+		ServerWriteTimeout:      defaultWriteTimeout,
+		ServerIdleTimeout:       defaultIdleTimeout,
+		ForceEmptyRepo:          false,
 	}
 }
 

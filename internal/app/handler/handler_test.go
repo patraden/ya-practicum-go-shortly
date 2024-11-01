@@ -11,26 +11,33 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandle(t *testing.T) {
-	t.Parallel()
-
+func setupEndPointTestRouter() http.Handler {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
-	err := repo.AddURL("shortURL", "https://ya.ru")
-	require.NoError(t, err)
+	_ = repo.AddURL("shortURL", "https://ya.ru") // Set up necessary test data
 
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
 	service := service.NewShortenerService(repo, gen, config)
-	router := h.NewRouter(service, config)
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+
+	return h.NewRouter(service, config, log)
+}
+
+func TestEndpoints(t *testing.T) {
+	t.Parallel()
+
+	router := setupEndPointTestRouter()
 
 	tests := []struct {
 		name   string
@@ -39,34 +46,10 @@ func TestHandle(t *testing.T) {
 		body   io.Reader
 		want   int
 	}{
-		{
-			name:   "test 1",
-			method: http.MethodDelete,
-			path:   "/",
-			body:   nil,
-			want:   http.StatusMethodNotAllowed,
-		},
-		{
-			name:   "test 2",
-			method: http.MethodPatch,
-			path:   "/",
-			body:   nil,
-			want:   http.StatusMethodNotAllowed,
-		},
-		{
-			name:   "test 3",
-			method: http.MethodPost,
-			path:   "/",
-			body:   strings.NewReader(`https://ya.ru`),
-			want:   http.StatusCreated,
-		},
-		{
-			name:   "test 4",
-			method: http.MethodGet,
-			path:   "/shortURL",
-			body:   nil,
-			want:   http.StatusTemporaryRedirect,
-		},
+		{"test 1", http.MethodDelete, "/", nil, http.StatusMethodNotAllowed},
+		{"test 2", http.MethodPatch, "/", nil, http.StatusMethodNotAllowed},
+		{"test 3", http.MethodPost, "/", strings.NewReader("https://ya.ru"), http.StatusCreated},
+		{"test 4", http.MethodGet, "/shortURL", nil, http.StatusTemporaryRedirect},
 	}
 
 	for _, test := range tests {
@@ -75,93 +58,49 @@ func TestHandle(t *testing.T) {
 
 			request := httptest.NewRequest(test.method, test.path, test.body)
 			w := httptest.NewRecorder()
-
 			router.ServeHTTP(w, request)
 
 			result := w.Result()
-
 			defer result.Body.Close()
 
 			assert.Equal(t, test.want, result.StatusCode)
 
-			if result.StatusCode == http.StatusTemporaryRedirect {
-				location := result.Header.Get("Location")
-				assert.Equal(t, "https://ya.ru", location)
+			if test.want == http.StatusTemporaryRedirect {
+				assert.Equal(t, "https://ya.ru", result.Header.Get("Location"))
 			}
 		})
 	}
 }
 
-func TestHandlePost(t *testing.T) {
-	t.Parallel()
-
+func setupHandlerPost() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
 	service := service.NewShortenerService(repo, gen, config)
-	handler := h.NewHandler(service, config)
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	handler := h.NewHandler(service, config, log)
 
-	type want struct {
-		status int
-		isURL  bool
-	}
+	return handler.HandlePost
+}
+
+func TestHandlePost(t *testing.T) {
+	t.Parallel()
+
+	handlePost := setupHandlerPost()
+
 	tests := []struct {
 		name        string
 		path        string
 		body        string
 		contentType string
-		want        want
+		wantStatus  int
+		wantIsURL   bool
 	}{
-		{
-			name:        "test 1",
-			body:        `https://ya.ru`,
-			path:        `/`,
-			contentType: h.ContentTypeText,
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:        "test 2",
-			body:        ``,
-			path:        `/`,
-			contentType: h.ContentTypeText,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
-			},
-		},
-		{
-			name:        "test 3",
-			body:        `//ya.ru`,
-			path:        `/`,
-			contentType: h.ContentTypeText,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
-			},
-		},
-		{
-			name:        "test 4",
-			body:        `https://ya.ru`,
-			path:        `/a/b/c`,
-			contentType: h.ContentTypeText,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
-			},
-		},
-		{
-			name:        "test 5",
-			body:        `https://ya.ru`,
-			path:        `//`,
-			contentType: h.ContentTypeText,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
-			},
-		},
+		{"valid URL", "/", `https://ya.ru`, h.ContentTypeText, http.StatusCreated, true},
+		{"empty body", "/", ``, h.ContentTypeText, http.StatusBadRequest, false},
+		{"invalid URL", "/", `//ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
+		{"invalid path", "/a/b/c", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
+		{"double slash path", "//", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
 	}
 
 	for _, test := range tests {
@@ -172,60 +111,44 @@ func TestHandlePost(t *testing.T) {
 			request.Header.Add(h.ContentType, test.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handler.HandlePost)
-			h(w, request)
+			handlePost(w, request)
 
 			result := w.Result()
+			defer result.Body.Close()
+
 			shortURL, err := io.ReadAll(result.Body)
-
-			require.NoError(t, err)
-			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, test.want.status, result.StatusCode)
-			assert.Equal(t, test.want.isURL, utils.IsURL(string(shortURL)))
+			assert.Equal(t, test.wantStatus, result.StatusCode)
+			assert.Equal(t, test.wantIsURL, utils.IsURL(string(shortURL)))
 		})
 	}
+}
+
+func setupHandlerJSON() http.HandlerFunc {
+	config := config.DefaultConfig()
+	repo := repository.NewInMemoryURLRepository()
+	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
+	service := service.NewShortenerService(repo, gen, config)
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+
+	return h.NewHandler(service, config, log).HandlePostJSON
 }
 
 func TestHandlePostJSON(t *testing.T) {
 	t.Parallel()
 
-	config := config.DefaultConfig()
-	repo := repository.NewInMemoryURLRepository()
-	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
-	handler := h.NewHandler(service, config).HandlePostJSON
-
-	type want struct {
-		status int
-		isURL  bool
-	}
+	handlePostJSON := setupHandlerJSON()
 
 	tests := []struct {
 		name        string
 		body        string
 		contentType string
-		want        want
+		wantStatus  int
+		wantIsURL   bool
 	}{
-		{
-			name:        `test 1`,
-			body:        `{"url":"https://practicum.yandex.ru"}`,
-			contentType: h.ContentTypeJSON,
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:        `test 2`,
-			body:        `{"url:"https://practicum.yandex.ru"}`,
-			contentType: h.ContentTypeJSON,
-			want: want{
-				status: http.StatusBadRequest,
-				isURL:  false,
-			},
-		},
+		{"valid JSON URL", `{"url":"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusCreated, true},
+		{"malformed JSON", `{"url:"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusBadRequest, false},
 	}
 
 	for _, test := range tests {
@@ -236,23 +159,18 @@ func TestHandlePostJSON(t *testing.T) {
 			request.Header.Add(h.ContentType, test.contentType)
 
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handler)
-			h(w, request)
+			handlePostJSON(w, request)
 
 			result := w.Result()
+			defer result.Body.Close()
 
-			assert.Equal(t, test.want.status, result.StatusCode)
+			assert.Equal(t, test.wantStatus, result.StatusCode)
 
-			if test.want.isURL {
+			if test.wantIsURL {
 				var responseBody map[string]string
-
 				err := json.NewDecoder(result.Body).Decode(&responseBody)
 				require.NoError(t, err)
-
-				err = result.Body.Close()
-				require.NoError(t, err)
-
-				assert.Equal(t, test.want.isURL, utils.IsURL(responseBody["result"]))
+				assert.True(t, utils.IsURL(responseBody["result"]))
 			}
 		})
 	}
@@ -268,33 +186,17 @@ func TestHandleGet(t *testing.T) {
 	longURL := `https://ya.ru`
 	serverAddr := `http://localhost:8080/`
 	shortURL, _ := service.ShortenURL(longURL)
-	router := h.NewRouter(service, config)
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	router := h.NewRouter(service, config, log)
 
-	type want struct {
-		status   int
-		location string
-	}
 	tests := []struct {
-		name string
-		path string
-		want want
+		name         string
+		path         string
+		wantStatus   int
+		wantLocation string
 	}{
-		{
-			name: "test 1",
-			path: serverAddr + shortURL,
-			want: want{
-				status:   http.StatusTemporaryRedirect,
-				location: longURL,
-			},
-		},
-		{
-			name: "test 2",
-			path: serverAddr + "qwerty",
-			want: want{
-				status:   http.StatusBadRequest,
-				location: "",
-			},
-		},
+		{"valid short URL", serverAddr + shortURL, http.StatusTemporaryRedirect, longURL},
+		{"invalid short URL", serverAddr + "qwerty", http.StatusBadRequest, ""},
 	}
 
 	for _, tt := range tests {
@@ -303,87 +205,48 @@ func TestHandleGet(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			w := httptest.NewRecorder()
-
 			router.ServeHTTP(w, request)
 
 			result := w.Result()
 			defer result.Body.Close()
 
-			assert.Equal(t, tt.want.status, result.StatusCode)
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
 
-			if result.StatusCode == http.StatusTemporaryRedirect {
-				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
+			if tt.wantStatus == http.StatusTemporaryRedirect {
+				assert.Equal(t, tt.wantLocation, result.Header.Get("Location"))
 			}
 		})
 	}
 }
 
-func TestHandlePostCompression(t *testing.T) {
-	t.Parallel()
-
+func setupPostCompressionHandler() http.Handler {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
 	service := service.NewShortenerService(repo, gen, config)
-	h := http.HandlerFunc(h.NewHandler(service, config).HandlePost)
-	hd := middleware.Compress()(h)
-	hdc := middleware.Decompress()(hd)
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	handler := http.HandlerFunc(h.NewHandler(service, config, log).HandlePost)
 
-	type want struct {
-		status int
-		isURL  bool
-	}
+	return middleware.Decompress()(middleware.Compress()(handler))
+}
+
+func TestHandlePostCompression(t *testing.T) {
+	t.Parallel()
+
+	handler := setupPostCompressionHandler()
+
 	tests := []struct {
 		name            string
 		contentEncoding string
 		acceptEncoding  string
-		want            want
+		status          int
+		isURL           bool
 	}{
-		{
-			name:            "test 1",
-			contentEncoding: "gzip",
-			acceptEncoding:  "",
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:            "test 2",
-			contentEncoding: "deflate",
-			acceptEncoding:  "",
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:            "test 3",
-			contentEncoding: "gzip",
-			acceptEncoding:  "deflate",
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:            "test 4",
-			contentEncoding: "deflate",
-			acceptEncoding:  "gzip",
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
-		{
-			name:            "test 5",
-			contentEncoding: "",
-			acceptEncoding:  "",
-			want: want{
-				status: http.StatusCreated,
-				isURL:  true,
-			},
-		},
+		{"test 1", "gzip", "", http.StatusCreated, true},
+		{"test 2", "deflate", "", http.StatusCreated, true},
+		{"test 3", "gzip", "deflate", http.StatusCreated, true},
+		{"test 4", "deflate", "gzip", http.StatusCreated, true},
+		{"test 5", "", "", http.StatusCreated, true},
 	}
 
 	for _, test := range tests {
@@ -392,30 +255,28 @@ func TestHandlePostCompression(t *testing.T) {
 				t.Parallel()
 
 				url := utils.RandURL()
-
 				data, err := utils.Compress([]byte(url), test.contentEncoding)
 				require.NoError(t, err)
 
-				w := httptest.NewRecorder()
 				r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(data))
-
 				r.Header.Set("Content-Encoding", test.contentEncoding)
 				r.Header.Set("Accept-Encoding", test.acceptEncoding)
 
-				hdc.ServeHTTP(w, r)
+				w := httptest.NewRecorder()
+				handler.ServeHTTP(w, r)
 
+				// Read the response and close the body
 				result := w.Result()
+				defer result.Body.Close() // Ensure the body is closed
+
 				compressedURL, err := io.ReadAll(result.Body)
 				require.NoError(t, err)
 
 				shortURL, err := utils.Decompress(compressedURL, test.acceptEncoding)
 				require.NoError(t, err)
 
-				err = result.Body.Close()
-				require.NoError(t, err)
-
-				assert.Equal(t, test.want.status, result.StatusCode)
-				assert.Equal(t, test.want.isURL, utils.IsURL(string(shortURL)))
+				assert.Equal(t, test.status, result.StatusCode)
+				assert.Equal(t, test.isURL, utils.IsURL(string(shortURL)))
 			})
 		}
 	}

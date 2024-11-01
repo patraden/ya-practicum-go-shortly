@@ -1,9 +1,9 @@
-.PHONY: vet lint test build shortenertest
+.PHONY: vet lint mocks code test clean build shortenertest
 
 VETTOOL ?= $(shell which statictest)
 SOURCE_PATH ?= ${CURDIR}
 BINARY_PATH ?= cmd/shortener/shortener
-TEMP_FILE ?= test/records.json
+TEMP_FILE ?= data/service_storage.json
 
 vet:
 	@go vet -vettool=$(VETTOOL) ./...
@@ -17,7 +17,7 @@ mocks:
 	@mockgen -source=internal/app/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
 
 code: mocks
-	@easyjson -all internal/app/handler/url.go
+	@easyjson -all internal/app/dto/url.go
 	@easyjson -all internal/app/repository/record.go
 
 
@@ -25,8 +25,12 @@ test:
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out
 
-build:
+clean:
 	@rm -f ./cmd/shortener/shortener
+	@rm -f ./coverage.out
+	@rm -f ./data/service_storage.json
+
+build: clean
 	@go build -buildvcs=false -o cmd/shortener/shortener ./cmd/shortener
 
 shortenertest: build

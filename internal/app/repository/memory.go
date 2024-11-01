@@ -32,8 +32,8 @@ func (ms *InMemoryURLRepository) AddURL(shortURL string, longURL string) error {
 }
 
 func (ms *InMemoryURLRepository) GetURL(shortURL string) (string, error) {
-	ms.Lock()
-	defer ms.Unlock()
+	ms.RLock()
+	defer ms.RUnlock()
 
 	value, ok := ms.values[shortURL]
 	if !ok {
@@ -51,17 +51,32 @@ func (ms *InMemoryURLRepository) DelURL(shortURL string) error {
 	return nil
 }
 
-func (ms *InMemoryURLRepository) CreateMemento() (*Memento, error) {
-	ms.Lock()
-	defer ms.Unlock()
+func (ms *InMemoryURLRepository) deepCopyValues() map[string]string {
+	cp := make(map[string]string)
+	for k, v := range ms.values {
+		cp[k] = v
+	}
 
-	return NewURLRepositoryState(ms.values), nil
+	return cp
+}
+
+func (ms *InMemoryURLRepository) CreateMemento() (*Memento, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	return NewURLRepositoryState(ms.deepCopyValues()), nil
 }
 
 func (ms *InMemoryURLRepository) RestoreMemento(m *Memento) error {
 	ms.Lock()
 	defer ms.Unlock()
-	ms.values = m.GetState()
+
+	cp := make(map[string]string)
+	for k, v := range m.GetState() {
+		cp[k] = v
+	}
+
+	ms.values = cp
 
 	return nil
 }

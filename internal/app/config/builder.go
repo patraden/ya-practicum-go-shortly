@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/caarlos0/env/v6"
@@ -23,60 +24,53 @@ func newBuilder() *builder {
 }
 
 func (b *builder) loadEnvConfig() {
-	err := env.Parse(b.env)
-	if err != nil {
+	if err := env.Parse(b.env); err != nil {
 		log.Fatal(e.ErrConfEnv)
 	}
 }
 
 func (b *builder) loadFlagsConfig() {
-	cfg := DefaultConfig()
-
-	flag.StringVar(&b.flags.ServerAddr, "a", cfg.ServerAddr, "server address {host}:{port}")
-	flag.StringVar(&b.flags.BaseURL, "b", cfg.BaseURL, "base url {base url}/{short link}")
-	flag.StringVar(&b.flags.FileStoragePath, "f", cfg.FileStoragePath, "url storage file path")
+	flag.StringVar(&b.flags.ServerAddr, "a", b.flags.ServerAddr, "server address {host}:{port}")
+	flag.StringVar(&b.flags.BaseURL, "b", b.flags.BaseURL, "base url {base url}/{short link}")
+	flag.StringVar(&b.flags.FileStoragePath, "f", b.flags.FileStoragePath, "url storage file path")
+	flag.BoolVar(&b.flags.ForceEmptyRepo, "force-empty", false, "do not load and preserve repository")
 	flag.Parse()
 }
 
 func (b *builder) getConfig() *Config {
 	cfg := DefaultConfig()
 
-	// handle Server Address
-	switch {
-	case b.env.ServerAddr != cfg.ServerAddr:
-		cfg.ServerAddr = b.env.ServerAddr
-	case b.flags.ServerAddr != cfg.ServerAddr:
-		cfg.ServerAddr = b.flags.ServerAddr
+	applyField := func(field string) {
+		envValue := reflect.ValueOf(b.env).Elem().FieldByName(field)
+		flagValue := reflect.ValueOf(b.flags).Elem().FieldByName(field)
+		cfgValue := reflect.ValueOf(cfg).Elem().FieldByName(field)
+
+		// Prioritize environment variable, then flags, then default.
+		switch {
+		case envValue.String() != cfgValue.String():
+			cfgValue.Set(envValue)
+		case flagValue.String() != cfgValue.String():
+			cfgValue.Set(flagValue)
+		}
 	}
 
-	// validate Server Address
+	fields := []string{"ServerAddr", "BaseURL", "FileStoragePath"}
+	for _, field := range fields {
+		applyField(field)
+	}
+
+	cfg.ForceEmptyRepo = b.flags.ForceEmptyRepo
+
 	if !utils.IsServerAddress(cfg.ServerAddr) {
 		log.Fatal(e.ErrConfParams)
 	}
 
-	// handle Base URL
-	switch {
-	case b.env.BaseURL != cfg.BaseURL:
-		cfg.BaseURL = b.env.BaseURL
-	case b.flags.BaseURL != cfg.BaseURL:
-		cfg.BaseURL = b.flags.BaseURL
-	}
-
-	// validate Base URL
 	if !utils.IsURL(cfg.BaseURL) {
 		log.Fatal(e.ErrConfParams)
 	}
 
 	if !strings.HasSuffix(cfg.BaseURL, "/") {
 		cfg.BaseURL += "/"
-	}
-
-	// handle Base URL
-	switch {
-	case b.env.FileStoragePath != cfg.FileStoragePath:
-		cfg.FileStoragePath = b.env.FileStoragePath
-	case b.flags.FileStoragePath != cfg.FileStoragePath:
-		cfg.FileStoragePath = b.flags.FileStoragePath
 	}
 
 	return cfg

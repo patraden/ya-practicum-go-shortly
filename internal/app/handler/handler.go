@@ -6,11 +6,13 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	easyjson "github.com/mailru/easyjson"
+	"github.com/mailru/easyjson"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -22,12 +24,14 @@ const (
 type Handler struct {
 	service *service.URLShortener
 	config  *config.Config
+	log     zerolog.Logger
 }
 
-func NewHandler(service *service.URLShortener, config *config.Config) *Handler {
+func NewHandler(service *service.URLShortener, config *config.Config, log zerolog.Logger) *Handler {
 	return &Handler{
 		service: service,
 		config:  config,
+		log:     log,
 	}
 }
 
@@ -81,7 +85,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
-	urlReq := URLRequest{LongURL: ""}
+	urlReq := dto.URLRequest{LongURL: ""}
 
 	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -96,7 +100,7 @@ func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlResp := URLResponse{ShortURL: h.config.BaseURL + shortURL}
+	urlResp := dto.URLResponse{ShortURL: h.config.BaseURL + shortURL}
 
 	w.Header().Set(ContentType, ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)

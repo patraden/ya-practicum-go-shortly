@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/rs/zerolog"
 )
 
@@ -37,14 +36,15 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func Logger() func(next http.Handler) http.Handler {
-	return WithLogging
+func Logger(log zerolog.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return WithLogging(next, log)
+	}
 }
 
-func WithLogging(h http.Handler) http.Handler {
+func WithLogging(h http.Handler, log zerolog.Logger) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
 
 		responseData := &responseData{
 			status: 0,
