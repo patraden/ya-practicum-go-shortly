@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(in *jlexer.Lexer, out *URLResponse) {
+func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(in *jlexer.Lexer, out *ShortenedURLResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -48,7 +48,7 @@ func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(i
 		in.Consumed()
 	}
 }
-func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(out *jwriter.Writer, in URLResponse) {
+func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(out *jwriter.Writer, in ShortenedURLResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -61,29 +61,29 @@ func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(o
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v URLResponse) MarshalJSON() ([]byte, error) {
+func (v ShortenedURLResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v URLResponse) MarshalEasyJSON(w *jwriter.Writer) {
+func (v ShortenedURLResponse) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *URLResponse) UnmarshalJSON(data []byte) error {
+func (v *ShortenedURLResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *URLResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *ShortenedURLResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto(l, v)
 }
-func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(in *jlexer.Lexer, out *URLRequest) {
+func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(in *jlexer.Lexer, out *ShortenURLRequest) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -114,7 +114,7 @@ func easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(
 		in.Consumed()
 	}
 }
-func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(out *jwriter.Writer, in URLRequest) {
+func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(out *jwriter.Writer, in ShortenURLRequest) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -127,25 +127,25 @@ func easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v URLRequest) MarshalJSON() ([]byte, error) {
+func (v ShortenURLRequest) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v URLRequest) MarshalEasyJSON(w *jwriter.Writer) {
+func (v ShortenURLRequest) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF48b0fb9EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *URLRequest) UnmarshalJSON(data []byte) error {
+func (v *ShortenURLRequest) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *URLRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *ShortenURLRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF48b0fb9DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDto1(l, v)
 }

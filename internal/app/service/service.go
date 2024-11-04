@@ -11,7 +11,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
-type URLShortener struct {
+type ShortenerService struct {
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
 	config       *config.Config
@@ -21,15 +21,15 @@ func NewShortenerService(
 	repo repository.URLRepository,
 	gen urlgenerator.URLGenerator,
 	config *config.Config,
-) *URLShortener {
-	return &URLShortener{
+) *ShortenerService {
+	return &ShortenerService{
 		repo:         repo,
 		urlGenerator: gen,
 		config:       config,
 	}
 }
 
-func (s *URLShortener) ShortenURL(longURL string) (string, error) {
+func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
 	// always assume that url generation is an non-injective function.
 	// timeout based backoff is the basic mechanism to address collisions.
 	// in case of high rates of collisions errors,
@@ -68,7 +68,7 @@ func (s *URLShortener) ShortenURL(longURL string) (string, error) {
 	return shortURL, nil
 }
 
-func (s *URLShortener) GetOriginalURL(shortURL string) (string, error) {
+func (s *ShortenerService) GetOriginalURL(shortURL string) (string, error) {
 	if !s.urlGenerator.IsValidURL(shortURL) {
 		return "", e.ErrServiceInvalid
 	}

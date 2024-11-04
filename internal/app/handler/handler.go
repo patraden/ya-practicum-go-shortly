@@ -22,12 +22,12 @@ const (
 )
 
 type Handler struct {
-	service *service.URLShortener
+	service service.URLShortener
 	config  *config.Config
 	log     zerolog.Logger
 }
 
-func NewHandler(service *service.URLShortener, config *config.Config, log zerolog.Logger) *Handler {
+func NewHandler(service service.URLShortener, config *config.Config, log zerolog.Logger) *Handler {
 	return &Handler{
 		service: service,
 		config:  config,
@@ -77,7 +77,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(ContentType, ContentTypeText)
 	w.WriteHeader(http.StatusCreated)
 
-	if _, err = w.Write([]byte(h.config.BaseURL + shortURL)); err != nil {
+	if _, err = w.Write([]byte(h.withBaseURL(shortURL))); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
@@ -85,7 +85,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
-	urlReq := dto.URLRequest{LongURL: ""}
+	urlReq := dto.ShortenURLRequest{LongURL: ""}
 
 	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -100,7 +100,7 @@ func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlResp := dto.URLResponse{ShortURL: h.config.BaseURL + shortURL}
+	urlResp := dto.ShortenedURLResponse{ShortURL: h.withBaseURL(shortURL)}
 
 	w.Header().Set(ContentType, ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
@@ -110,4 +110,9 @@ func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
+
+func (h *Handler) withBaseURL(shortURL string) string {
+	return h.config.BaseURL + shortURL
+
 }

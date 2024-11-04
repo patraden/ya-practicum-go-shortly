@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewRouter(srv *service.URLShortener, cfg *config.Config, log zerolog.Logger) http.Handler {
+func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger) http.Handler {
 	handler := NewHandler(srv, cfg, log)
 	router := chi.NewRouter()
 

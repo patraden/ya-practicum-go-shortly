@@ -1,10 +1,10 @@
 package dto
 
 //go:generate easyjson -all url.go
-type URLRequest struct {
+type ShortenURLRequest struct {
 	LongURL string `json:"url"`
 }
 
-type URLResponse struct {
+type ShortenedURLResponse struct {
 	ShortURL string `json:"result"`
 }

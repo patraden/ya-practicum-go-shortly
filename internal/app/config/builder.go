@@ -14,12 +14,14 @@ import (
 type builder struct {
 	env   *Config
 	flags *Config
+	scope []string
 }
 
 func newBuilder() *builder {
 	return &builder{
 		env:   DefaultConfig(),
 		flags: DefaultConfig(),
+		scope: []string{"ServerAddr", "BaseURL", "FileStoragePath"},
 	}
 }
 
@@ -40,7 +42,7 @@ func (b *builder) loadFlagsConfig() {
 func (b *builder) getConfig() *Config {
 	cfg := DefaultConfig()
 
-	applyField := func(field string) {
+	for _, field := range b.scope {
 		envValue := reflect.ValueOf(b.env).Elem().FieldByName(field)
 		flagValue := reflect.ValueOf(b.flags).Elem().FieldByName(field)
 		cfgValue := reflect.ValueOf(cfg).Elem().FieldByName(field)
@@ -52,11 +54,6 @@ func (b *builder) getConfig() *Config {
 		case flagValue.String() != cfgValue.String():
 			cfgValue.Set(flagValue)
 		}
-	}
-
-	fields := []string{"ServerAddr", "BaseURL", "FileStoragePath"}
-	for _, field := range fields {
-		applyField(field)
 	}
 
 	cfg.ForceEmptyRepo = b.flags.ForceEmptyRepo
