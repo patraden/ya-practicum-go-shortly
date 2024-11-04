@@ -114,5 +114,4 @@ func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) withBaseURL(shortURL string) string {
 	return h.config.BaseURL + shortURL
-
 }
