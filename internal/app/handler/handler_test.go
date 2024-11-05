@@ -9,6 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
@@ -17,9 +21,6 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func setupEndPointTestRouter() http.Handler {

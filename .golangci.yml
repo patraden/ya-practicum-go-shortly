@@ -85,5 +85,11 @@ linters-settings:
         # Any struct tag type can be used.
         # Support string case: `camel`, `pascal`, `kebab`, `snake`, `upperSnake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`, `header`
         json: snake
+  
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/patraden/ya-practicum-go-shortly)
 
 

@@ -5,12 +5,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/server"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
-	"github.com/rs/zerolog"
 )
 
 func main() {

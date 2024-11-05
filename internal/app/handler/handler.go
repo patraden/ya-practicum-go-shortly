@@ -7,12 +7,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mailru/easyjson"
+	"github.com/rs/zerolog"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
-	"github.com/rs/zerolog"
 )
 
 const (

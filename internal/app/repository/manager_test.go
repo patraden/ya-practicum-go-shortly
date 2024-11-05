@@ -4,12 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
 func TestFileReadWrite(t *testing.T) {

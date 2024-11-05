@@ -12,8 +12,9 @@ package mock
 import (
 	reflect "reflect"
 
-	repository "github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	gomock "go.uber.org/mock/gomock"
+
+	repository "github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
 // MockURLRepository is a mock of URLRepository interface.

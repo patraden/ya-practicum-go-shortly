@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
-	"github.com/rs/zerolog"
 )
 
 type Server struct {

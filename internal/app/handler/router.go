@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
-	"github.com/rs/zerolog"
 )
 
 func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger) http.Handler {

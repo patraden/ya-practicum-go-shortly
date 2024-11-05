@@ -9,6 +9,7 @@ vet:
 	@go vet -vettool=$(VETTOOL) ./...
 
 lint:
+	@goimports -e -w -local "github.com/patraden/ya-practicum-go-shortly" .
 	@gofumpt -w ./cmd/shortener ./internal/app
 	@golangci-lint run ./...
 

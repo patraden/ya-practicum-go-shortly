@@ -7,9 +7,10 @@ import (
 	"os"
 
 	"github.com/mailru/easyjson"
+	"github.com/rs/zerolog"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
-	"github.com/rs/zerolog"
 )
 
 const (

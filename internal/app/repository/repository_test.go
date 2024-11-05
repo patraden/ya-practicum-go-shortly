@@ -4,10 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
 type want struct {

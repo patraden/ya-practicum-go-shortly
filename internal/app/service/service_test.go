@@ -4,6 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
@@ -11,9 +15,6 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 const numStoreRestoreTests = 100
