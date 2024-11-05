@@ -2,58 +2,68 @@ package service
 
 import (
 	"errors"
-	"fmt"
-	"time"
 
 	"github.com/cenkalti/backoff/v4"
+
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
 type ShortenerService struct {
-	URLShortener
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
-	genTimeout   time.Duration
+	config       *config.Config
 }
 
-func NewShortenerService(timeout time.Duration) *ShortenerService {
+func NewShortenerService(
+	repo repository.URLRepository,
+	gen urlgenerator.URLGenerator,
+	config *config.Config,
+) *ShortenerService {
 	return &ShortenerService{
-		repo:         repository.NewInMemoryURLRepository(),
-		urlGenerator: urlgenerator.NewRandURLGenerator(8),
-		genTimeout:   timeout,
+		repo:         repo,
+		urlGenerator: gen,
+		config:       config,
 	}
 }
 
 func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
-	var shortURL string
-	var err error
-
 	// always assume that url generation is an non-injective function.
 	// timeout based backoff is the basic mechanism to address collisions.
 	// in case of high rates of collisions errors,
-	// the intention should rather be to improve URLGenerator algorythms
-	op := func() error {
+	// the intention should rather be to improve URLGenerator algorithms or service.
+	var shortURL string
+	var err error
+
+	b := utils.LinearBackoff(s.config.URLGenTimeout, s.config.URLGenRetryInterval)
+	operation := func() error {
 		shortURL = s.urlGenerator.GenerateURL(longURL)
 		_, err = s.repo.GetURL(shortURL)
+
 		switch {
-		case errors.Is(err, e.ErrNotFound):
+		case errors.Is(err, e.ErrRepoNotFound):
 			return nil
 		case err != nil:
 			return backoff.Permanent(err)
 		default:
-			return fmt.Errorf("URL collision")
+			return e.ErrServiceCollision
 		}
 	}
 
-	b := backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(s.genTimeout))
-	if err = backoff.Retry(op, b); err != nil {
-		return "", e.ErrInternal
+	err = backoff.Retry(operation, b)
+	if errors.Is(err, e.ErrServiceCollision) {
+		return "", e.ErrServiceCollision
+	}
+
+	if err != nil {
+		return "", e.ErrServiceInternal
 	}
 
 	if err = s.repo.AddURL(shortURL, longURL); err != nil {
-		return "", e.ErrInternal
+		return "", e.ErrServiceInternal
 	}
 
 	return shortURL, nil
@@ -61,17 +71,17 @@ func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
 
 func (s *ShortenerService) GetOriginalURL(shortURL string) (string, error) {
 	if !s.urlGenerator.IsValidURL(shortURL) {
-		return "", e.ErrInvalid
+		return "", e.ErrServiceInvalid
 	}
 
 	longURL, err := s.repo.GetURL(shortURL)
 
-	if errors.Is(err, e.ErrNotFound) {
-		return "", e.ErrNotFound
+	if errors.Is(err, e.ErrRepoNotFound) {
+		return "", e.ErrRepoNotFound
 	}
 
 	if err != nil {
-		return "", e.ErrInternal
+		return "", e.ErrServiceInternal
 	}
 
 	return longURL, nil

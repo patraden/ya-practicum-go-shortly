@@ -21,3 +21,6 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+# Data records
+data/service_storage.json
