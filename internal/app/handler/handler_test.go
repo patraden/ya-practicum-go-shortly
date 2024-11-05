@@ -81,7 +81,7 @@ func setupHandlerPost() http.HandlerFunc {
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 	handler := h.NewHandler(service, config, log)
 
-	return handler.HandlePost
+	return handler.HandleShortenURL
 }
 
 func TestHandlePost(t *testing.T) {
@@ -126,20 +126,20 @@ func TestHandlePost(t *testing.T) {
 	}
 }
 
-func setupHandlerJSON() http.HandlerFunc {
+func setupHandleShortenURLJSON() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
 	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 
-	return h.NewHandler(service, config, log).HandlePostJSON
+	return h.NewHandler(service, config, log).HandleShortenURLJSON
 }
 
-func TestHandlePostJSON(t *testing.T) {
+func TestHandleShortenURLJSON(t *testing.T) {
 	t.Parallel()
 
-	handlePostJSON := setupHandlerJSON()
+	handlePostJSON := setupHandleShortenURLJSON()
 
 	tests := []struct {
 		name        string
@@ -177,7 +177,7 @@ func TestHandlePostJSON(t *testing.T) {
 	}
 }
 
-func TestHandleGet(t *testing.T) {
+func TestHandleGetOriginalURL(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
@@ -220,21 +220,21 @@ func TestHandleGet(t *testing.T) {
 	}
 }
 
-func setupPostCompressionHandler() http.Handler {
+func setupHandleShortenURLCompression() http.Handler {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
 	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	handler := http.HandlerFunc(h.NewHandler(service, config, log).HandlePost)
+	handler := http.HandlerFunc(h.NewHandler(service, config, log).HandleShortenURL)
 
 	return middleware.Decompress()(middleware.Compress()(handler))
 }
 
-func TestHandlePostCompression(t *testing.T) {
+func TestHandleShortenURLCompression(t *testing.T) {
 	t.Parallel()
 
-	handler := setupPostCompressionHandler()
+	handler := setupHandleShortenURLCompression()
 
 	tests := []struct {
 		name            string

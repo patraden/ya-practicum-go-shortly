@@ -36,7 +36,7 @@ func NewHandler(service service.URLShortener, config *config.Config, log zerolog
 	}
 }
 
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleGetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	shortURL := chi.URLParam(r, "shortURL")
 	longURL, err := h.service.GetOriginalURL(shortURL)
 
@@ -59,7 +59,7 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleShortenURL(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 
 	if r.URL.Path != "/" || r.Body == http.NoBody || err != nil || !utils.IsURL(string(b)) {
@@ -85,7 +85,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandlePostJSON(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleShortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	urlReq := dto.ShortenURLRequest{LongURL: ""}
 
 	if err := easyjson.UnmarshalFromReader(r.Body, &urlReq); err != nil {

@@ -21,9 +21,9 @@ func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger)
 	router.Use(middleware.Decompress())
 	router.Use(middleware.Logger(log))
 
-	router.Get("/{shortURL}", handler.HandleGet)
-	router.Post("/api/shorten", handler.HandlePostJSON)
-	router.Post("/", handler.HandlePost)
+	router.Get("/{shortURL}", handler.HandleGetOriginalURL)
+	router.Post("/api/shorten", handler.HandleShortenURLJSON)
+	router.Post("/", handler.HandleShortenURL)
 	router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "path not found", http.StatusBadRequest)
 	}))
