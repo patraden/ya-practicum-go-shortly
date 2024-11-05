@@ -22,7 +22,12 @@ func newBuilder() *builder {
 	return &builder{
 		env:   DefaultConfig(),
 		flags: DefaultConfig(),
-		scope: []string{"ServerAddr", "BaseURL", "FileStoragePath"},
+		scope: []string{
+			"ServerAddr",
+			"BaseURL",
+			"FileStoragePath",
+			"DatabaseDSN",
+		},
 	}
 }
 
@@ -36,6 +41,7 @@ func (b *builder) loadFlagsConfig() {
 	flag.StringVar(&b.flags.ServerAddr, "a", b.flags.ServerAddr, "server address {host}:{port}")
 	flag.StringVar(&b.flags.BaseURL, "b", b.flags.BaseURL, "base url {base url}/{short link}")
 	flag.StringVar(&b.flags.FileStoragePath, "f", b.flags.FileStoragePath, "url storage file path")
+	flag.StringVar(&b.flags.DatabaseDSN, "d", b.flags.DatabaseDSN, "database DSN")
 	flag.BoolVar(&b.flags.ForceEmptyRepo, "force-empty", false, "do not load and preserve repository")
 	flag.Parse()
 }

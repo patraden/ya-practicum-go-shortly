@@ -36,6 +36,10 @@ func NewHandler(service service.URLShortener, config *config.Config, log zerolog
 	}
 }
 
+func (h *Handler) withBaseURL(shortURL string) string {
+	return h.config.BaseURL + shortURL
+}
+
 func (h *Handler) HandleGetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	shortURL := chi.URLParam(r, "shortURL")
 	longURL, err := h.service.GetOriginalURL(shortURL)
@@ -113,6 +117,18 @@ func (h *Handler) HandleShortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) withBaseURL(shortURL string) string {
-	return h.config.BaseURL + shortURL
+func (h *Handler) HandleDBPing(w http.ResponseWriter, _ *http.Request) {
+	if h.config.DatabaseDSN == `` {
+		http.Error(w, "database ping is not possible", http.StatusInternalServerError)
+
+		return
+	}
+
+	if _, err := utils.NewDB(h.log, h.config.DatabaseDSN); err != nil {
+		http.Error(w, "database is not reachable", http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

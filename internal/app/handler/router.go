@@ -21,6 +21,7 @@ func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger)
 	router.Use(middleware.Decompress())
 	router.Use(middleware.Logger(log))
 
+	router.Get("/ping", handler.HandleDBPing)
 	router.Get("/{shortURL}", handler.HandleGetOriginalURL)
 	router.Post("/api/shorten", handler.HandleShortenURLJSON)
 	router.Post("/", handler.HandleShortenURL)
