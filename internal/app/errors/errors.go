@@ -26,4 +26,8 @@ var (
 	ErrDecompress       = errors.New("request decompression error")
 	ErrTest             = errors.New("testing error")
 	ErrUtils            = errors.New("utils error")
+	ErrDBOpen           = errors.New("utils db: failed to open db")
+	ErrDBPing           = errors.New("utils db: failed to ping db")
+	ErrDBDSNParse       = errors.New("utils db: failed to parse dsn")
+	ErrDBClose          = errors.New("utils db: close error")
 )

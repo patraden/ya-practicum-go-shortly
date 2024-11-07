@@ -118,14 +118,17 @@ func (h *Handler) HandleShortenURLJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleDBPing(w http.ResponseWriter, _ *http.Request) {
-	if h.config.DatabaseDSN == `` {
-		http.Error(w, "database ping is not possible", http.StatusInternalServerError)
+	db, err := utils.NewPG(h.config.DatabaseDSN, h.log)
+	if err != nil {
+		http.Error(w, "cannot open db", http.StatusInternalServerError)
 
 		return
 	}
 
-	if _, err := utils.NewDB(h.log, h.config.DatabaseDSN); err != nil {
-		http.Error(w, "database is not reachable", http.StatusInternalServerError)
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		http.Error(w, "db is not reachable", http.StatusInternalServerError)
 
 		return
 	}
