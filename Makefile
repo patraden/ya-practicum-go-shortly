@@ -4,6 +4,7 @@ VETTOOL ?= $(shell which statictest)
 SOURCE_PATH ?= ${CURDIR}
 BINARY_PATH ?= cmd/shortener/shortener
 TEMP_FILE ?= data/service_storage.json
+DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable
 
 vet:
 	@go vet -vettool=$(VETTOOL) ./...
@@ -53,3 +54,5 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration8\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH)
 	@echo "Running increment9 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration9\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -file-storage-path=$(TEMP_FILE)
+	@echo "Running increment10 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration10\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
