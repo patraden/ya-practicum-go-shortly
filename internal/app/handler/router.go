@@ -6,13 +6,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
 )
 
-func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger) http.Handler {
-	handler := NewHandler(srv, cfg, log)
+func NewRouter(
+	shandler *ShortenerHandler,
+	phandler *PingHandler,
+	log zerolog.Logger,
+) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Recoverer())
@@ -21,9 +22,10 @@ func NewRouter(srv service.URLShortener, cfg *config.Config, log zerolog.Logger)
 	router.Use(middleware.Decompress())
 	router.Use(middleware.Logger(log))
 
-	router.Get("/{shortURL}", handler.HandleGetOriginalURL)
-	router.Post("/api/shorten", handler.HandleShortenURLJSON)
-	router.Post("/", handler.HandleShortenURL)
+	router.Get("/ping", phandler.HandleDBPing)
+	router.Get("/{shortURL}", shandler.HandleGetOriginalURL)
+	router.Post("/api/shorten", shandler.HandleShortenURLJSON)
+	router.Post("/", shandler.HandleShortenURL)
 	router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "path not found", http.StatusBadRequest)
 	}))

@@ -1,6 +1,7 @@
-package service_test
+package shortener_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,11 +10,12 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
@@ -29,41 +31,41 @@ func RunShortenURLCollisionsTests(t *testing.T, config *config.Config, repo repo
 
 	mockURLGen.
 		EXPECT().
-		GenerateURL(gomock.Any()).
-		Return("shortURL").
+		GenerateSlug(gomock.Any(), gomock.Any()).
+		Return(domain.Slug("shortURL")).
 		Times(calls)
 
-	shortener := service.NewShortenerService(repo, mockURLGen, config)
+	srv := shortener.NewInsistentShortener(repo, mockURLGen, config)
 
 	t.Run("url collisions test", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := shortener.ShortenURL("abc")
+		_, err := srv.ShortenURL(context.Background(), domain.OriginalURL("abc"))
 
 		require.NoError(t, err)
 
 		start := time.Now()
-		_, err = shortener.ShortenURL("cba")
+		_, err = srv.ShortenURL(context.Background(), domain.OriginalURL("cba"))
 
 		require.ErrorIs(t, err, e.ErrServiceCollision)
 		assert.LessOrEqual(t, time.Since(start), config.URLGenTimeout)
 	})
 }
 
-func RunStoreRestoreTests(t *testing.T, shortener service.URLShortener) {
+func RunStoreRestoreTests(t *testing.T, srv shortener.URLShortener) {
 	t.Helper()
 
 	t.Run("ShortenURL", func(t *testing.T) {
 		t.Parallel()
 
-		longURL := utils.RandURL()
-		shortURL, err := shortener.ShortenURL(longURL)
+		original := domain.OriginalURL(utils.RandURL())
+		mapURL, err := srv.ShortenURL(context.Background(), original)
 
 		require.NoError(t, err)
 
-		restoredURL, err := shortener.GetOriginalURL(shortURL)
+		newMapURL, err := srv.GetOriginalURL(context.Background(), mapURL.Slug)
 		require.NoError(t, err)
-		assert.Equal(t, longURL, restoredURL)
+		assert.Equal(t, original, newMapURL.OriginalURL)
 	})
 }
 
@@ -77,34 +79,36 @@ func RunShortenURLErrTests(t *testing.T, config *config.Config, gen urlgenerator
 	gomock.InOrder(
 		mockURLRepo.
 			EXPECT().
-			GetURL(gomock.Any()).
-			Return("", e.ErrTest).
+			GetURLMapping(gomock.Any(), gomock.Any()).
+			Return(nil, e.ErrTest).
 			Times(1),
 
 		mockURLRepo.
 			EXPECT().
-			GetURL(gomock.Any()).
-			Return("", e.ErrRepoNotFound).
+			GetURLMapping(gomock.Any(), gomock.Any()).
+			Return(nil, e.ErrRepoNotFound).
 			Times(1),
 
 		mockURLRepo.
 			EXPECT().
-			AddURL(gomock.Any(), gomock.Any()).
+			AddURLMapping(gomock.Any(), gomock.Any()).
 			Return(e.ErrTest).
 			Times(1),
 	)
 
-	shortener := service.NewShortenerService(mockURLRepo, gen, config)
+	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config)
 
 	t.Run("ShortenURLErr", func(t *testing.T) {
 		t.Parallel()
 
 		// first call should have problems to get from repo.
-		_, err := shortener.ShortenURL("http://localhost:8080")
+		originalURL := domain.OriginalURL("http://localhost:8080")
+		_, err := srv.ShortenURL(context.Background(), originalURL)
 		require.ErrorIs(t, err, e.ErrServiceInternal)
 
 		// second call should have problems to add to repo.
-		_, err = shortener.ShortenURL("http://localhost:8181")
+		originalURL = domain.OriginalURL("http://localhost:8181")
+		_, err = srv.ShortenURL(context.Background(), originalURL)
 		require.ErrorIs(t, err, e.ErrServiceInternal)
 	})
 }
@@ -118,27 +122,27 @@ func RunGetOriginalURLErrTests(t *testing.T, config *config.Config, gen urlgener
 	gomock.InOrder(
 		mockURLRepo.
 			EXPECT().
-			GetURL(gomock.Any()).
-			Return("", e.ErrTest).
+			GetURLMapping(gomock.Any(), gomock.Any()).
+			Return(nil, e.ErrTest).
 			Times(1),
 
 		mockURLRepo.
 			EXPECT().
-			GetURL(gomock.Any()).
-			Return("", e.ErrRepoNotFound).
+			GetURLMapping(gomock.Any(), gomock.Any()).
+			Return(nil, e.ErrRepoNotFound).
 			Times(1),
 	)
 
-	shortener := service.NewShortenerService(mockURLRepo, gen, config)
-	badURL := utils.RandomString(config.URLsize + 1)
+	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config)
+	badURL := domain.Slug(utils.RandomString(config.URLsize + 1))
 
-	_, err := shortener.GetOriginalURL(badURL)
+	_, err := srv.GetOriginalURL(context.Background(), badURL)
 	require.ErrorIs(t, err, e.ErrServiceInvalid)
 
-	_, err = shortener.GetOriginalURL("shortURL")
+	_, err = srv.GetOriginalURL(context.Background(), domain.Slug("shortURL"))
 	require.ErrorIs(t, err, e.ErrServiceInternal)
 
-	_, err = shortener.GetOriginalURL("shortURL")
+	_, err = srv.GetOriginalURL(context.Background(), domain.Slug("shortURL"))
 	require.ErrorIs(t, err, e.ErrRepoNotFound)
 }
 
@@ -148,11 +152,11 @@ func TestURLShortener(t *testing.T) {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	shortener := service.NewShortenerService(repo, gen, config)
+	srv := shortener.NewInsistentShortener(repo, gen, config)
 
 	// store and restore good urls.
 	for range numStoreRestoreTests {
-		RunStoreRestoreTests(t, shortener)
+		RunStoreRestoreTests(t, srv)
 	}
 
 	// colisions and retries.

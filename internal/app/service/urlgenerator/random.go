@@ -1,9 +1,12 @@
 package urlgenerator
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
+
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 )
 
 type RandURLGenerator struct {
@@ -16,7 +19,7 @@ func NewRandURLGenerator(l int) *RandURLGenerator {
 	}
 }
 
-func (g *RandURLGenerator) GenerateURL(_ string) string {
+func (g *RandURLGenerator) GenerateSlug(_ context.Context, _ domain.OriginalURL) domain.Slug {
 	charSets := []string{
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ", // A-Z
 		"abcdefghijklmnopqrstuvwxyz", // a-z
@@ -29,12 +32,12 @@ func (g *RandURLGenerator) GenerateURL(_ string) string {
 		bytes[i] = charSet[rand.Intn(len(charSet))]
 	}
 
-	return string(bytes)
+	return domain.Slug(string(bytes))
 }
 
-func (g *RandURLGenerator) IsValidURL(shortURL string) bool {
+func (g *RandURLGenerator) IsValidSlug(slug domain.Slug) bool {
 	regexPattern := fmt.Sprintf(`^/?[a-zA-Z0-9]{%d}$`, g.length)
 	validShortURL := regexp.MustCompile(regexPattern)
 
-	return validShortURL.MatchString(shortURL)
+	return validShortURL.MatchString(slug.String())
 }

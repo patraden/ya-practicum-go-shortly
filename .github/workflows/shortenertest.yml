@@ -25,6 +25,8 @@ jobs:
       postgres:
         image: postgres
         env:
+          POSTGRES_HOST: postgres
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: praktikum
         options: >-
@@ -36,6 +38,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+      
+      - name: Apply migrations
+        env:
+          GOOSE_DRIVER: postgres
+          GOOSE_DBSTRING: "host=postgres port=5432 user=postgres password=postgres dbname=praktikum sslmode=disable"
+          GOOSE_MIGRATION_DIR: "migrations"
+        run: goose up
 
       - name: Download autotests binaries
         uses: robinraju/release-downloader@v1.8
@@ -113,23 +125,6 @@ jobs:
               -file-storage-path=$TEMP_FILE
 
       - name: "Code increment #10"
-        if: |
-          github.ref == 'refs/heads/main' ||
-          github.head_ref == 'iter10' ||
-          github.head_ref == 'iter11' ||
-          github.head_ref == 'iter12' ||
-          github.head_ref == 'iter13' ||
-          github.head_ref == 'iter14' ||
-          github.head_ref == 'iter15' ||
-          github.head_ref == 'iter16' ||
-          github.head_ref == 'iter17' ||
-          github.head_ref == 'iter18' ||
-          github.head_ref == 'iter19' ||
-          github.head_ref == 'iter20' ||
-          github.head_ref == 'iter21' ||
-          github.head_ref == 'iter22' ||
-          github.head_ref == 'iter23' ||
-          github.head_ref == 'iter24'
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration10$ \
               -binary-path=cmd/shortener/shortener \
@@ -137,22 +132,6 @@ jobs:
               -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable'
 
       - name: "Code increment #11"
-        if: |
-          github.ref == 'refs/heads/main' ||
-          github.head_ref == 'iter11' ||
-          github.head_ref == 'iter12' ||
-          github.head_ref == 'iter13' ||
-          github.head_ref == 'iter14' ||
-          github.head_ref == 'iter15' ||
-          github.head_ref == 'iter16' ||
-          github.head_ref == 'iter17' ||
-          github.head_ref == 'iter18' ||
-          github.head_ref == 'iter19' ||
-          github.head_ref == 'iter20' ||
-          github.head_ref == 'iter21' ||
-          github.head_ref == 'iter22' ||
-          github.head_ref == 'iter23' ||
-          github.head_ref == 'iter24'
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration11$ \
               -binary-path=cmd/shortener/shortener \
