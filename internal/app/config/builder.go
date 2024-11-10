@@ -69,10 +69,6 @@ func (b *builder) getConfig() *Config {
 		log.Fatal(e.ErrConfParams)
 	}
 
-	if !utils.IsURL(cfg.BaseURL) {
-		log.Fatal(e.ErrConfParams)
-	}
-
 	if !strings.HasSuffix(cfg.BaseURL, "/") {
 		cfg.BaseURL += "/"
 	}

@@ -1,4 +1,4 @@
-package repository
+package memento
 
 import (
 	"bufio"
@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 )
 
@@ -19,38 +21,57 @@ const (
 )
 
 type StateManager struct {
-	config *config.Config
-	log    zerolog.Logger
+	config     *config.Config
+	originator Originator
+	log        zerolog.Logger
 }
 
-func NewStateManager(config *config.Config, log zerolog.Logger) *StateManager {
+func NewStateManager(config *config.Config, originator Originator, log zerolog.Logger) *StateManager {
 	return &StateManager{
-		log:    log,
-		config: config,
+		config:     config,
+		originator: originator,
+		log:        log,
 	}
 }
 
-func (sm *StateManager) LoadFromFile() (*Memento, error) {
+func (sm *StateManager) RestoreFromState(state *Memento) error {
+	if err := sm.originator.RestoreMemento(state); err != nil {
+		return e.ErrMementoRestore
+	}
+
+	return nil
+}
+
+func (sm *StateManager) RestoreFromFile() error {
 	r, err := NewReader(sm.config.FileStoragePath, sm.log)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer r.Close()
 
 	state, err := r.LoadState()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return state, nil
+	if err := sm.originator.RestoreMemento(state); err != nil {
+		return e.ErrMementoRestore
+	}
+
+	return nil
 }
 
-func (sm *StateManager) SaveToFile(state *Memento) error {
+func (sm *StateManager) StoreToFile() error {
 	w, err := NewWriter(sm.config.FileStoragePath, sm.log)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
+
+	state, err := sm.originator.CreateMemento()
+	if err != nil {
+		return e.ErrMementoCreate
+	}
 
 	err = w.SaveState(state)
 	if err != nil {
@@ -80,7 +101,7 @@ func NewReader(fileName string, log zerolog.Logger) (*Reader, error) {
 }
 
 func (r *Reader) LoadState() (*Memento, error) {
-	state := make(map[string]string)
+	state := make(dto.URLMappings)
 
 	if err := r.Reset(); err != nil {
 		return nil, err
@@ -88,23 +109,24 @@ func (r *Reader) LoadState() (*Memento, error) {
 
 	for r.scanner.Scan() {
 		data := r.scanner.Bytes()
-		record := FileRecord{}
+		link := domain.URLMapping{}
 
-		err := record.UnmarshalJSON(data)
+		err := link.UnmarshalJSON(data)
 		if err != nil {
 			return nil, fmt.Errorf(e.WrapUnmarchalJSON, err)
 		}
 
-		state[record.ShortURL] = record.LongURL
+		state[link.Slug] = link
 		r.log.Info().
-			Int("uuid", record.ID).
-			Str("short_url", record.ShortURL).
-			Str("long_url", record.LongURL).
+			Str("short_url", string(link.Slug)).
+			Str("long_url", string(link.OriginalURL)).
+			Time("created_at", link.CreatedAt).
+			Time("expires_at", link.ExpiresAt).
 			Msg("loaded record")
 	}
 
 	if r.scanner.Err() == nil {
-		return NewURLRepositoryState(state), nil
+		return NewMemento(state), nil
 	}
 
 	return nil, fmt.Errorf(e.WrapFileRead, r.scanner.Err())
@@ -147,17 +169,8 @@ func NewWriter(fileName string, log zerolog.Logger) (*Writer, error) {
 }
 
 func (w *Writer) SaveState(state *Memento) error {
-	urls := state.GetState()
-
-	index := 1
-	for shortURL, longURL := range urls {
-		record := &FileRecord{
-			ID:       index,
-			ShortURL: shortURL,
-			LongURL:  longURL,
-		}
-
-		if _, err := easyjson.MarshalToWriter(record, w.file); err != nil {
+	for _, link := range state.GetState() {
+		if _, err := easyjson.MarshalToWriter(link, w.file); err != nil {
 			return fmt.Errorf(e.WrapMarchalJSON, err)
 		}
 
@@ -166,12 +179,11 @@ func (w *Writer) SaveState(state *Memento) error {
 		}
 
 		w.log.Info().
-			Int("uuid", record.ID).
-			Str("short_url", record.ShortURL).
-			Str("long_url", record.LongURL).
+			Str("short_url", string(link.Slug)).
+			Str("long_url", string(link.OriginalURL)).
+			Time("created_at", link.CreatedAt).
+			Time("expires_at", link.ExpiresAt).
 			Msg("preserved record")
-
-		index++
 	}
 
 	return nil

@@ -8,6 +8,13 @@ linters:
     - exportloopref
     - tparallel # redundant of paralleltest, which is configurable
 
+issues:
+  exclude-rules:
+  - path: '(.+)_test\.go'
+    linters:
+      - wrapcheck
+      - exhaustruct
+
 linters-settings:
   # https://github.com/OpenPeeDeeP/depguard
   depguard:
@@ -65,7 +72,7 @@ linters-settings:
     # Default: []
     exclude:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
-      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/repository\.FileRecord$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
       - '^net/url.URL$'
       - '^net/http.Server$'
 

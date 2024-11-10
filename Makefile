@@ -16,11 +16,12 @@ lint:
 
 mocks:
 	@mockgen -source=internal/app/repository/repository.go -destination=internal/app/mock/repository.go -package=mock URLRepository
-	@mockgen -source=internal/app/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
+	@mockgen -source=internal/app/service/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
+	@mockgen -source=internal/app/memento/originator.go -destination=internal/app/mock/originator.go -package=mock Originator
 
 code: mocks
 	@easyjson -all internal/app/dto/url.go
-	@easyjson -all internal/app/repository/record.go
+	@easyjson -all internal/app/domain/urlmapping.go
 
 
 test:
@@ -56,3 +57,30 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration9\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -file-storage-path=$(TEMP_FILE)
 	@echo "Running increment10 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration10\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+	@echo "Running increment11 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration11\$$ -source-path=$(SOURCE_PATH) -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+
+.PHONY: goose-init
+goose-init:
+	@goose --dir migrations -s create app_schema sql
+	@goose --dir migrations -s create app_repository sql
+	@goose --dir migrations -s create app_grants sql
+
+
+.PHONY: goose-status
+goose-status:
+	@goose -dir migrations postgres ${DATABASE_DSN} status
+
+
+.PHONY: goose-up
+goose-up:
+	@goose -dir migrations postgres ${DATABASE_DSN} up
+
+
+.PHONY: goose-down
+goose-down:
+	@goose -dir migrations postgres ${DATABASE_DSN} down
+
+.PHONY: sqlc
+sqlc:
+	@sqlc generate

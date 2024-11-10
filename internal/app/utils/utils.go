@@ -7,21 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/google/uuid"
 )
-
-func IsURL(longURL string) bool {
-	parsedURL, err := url.ParseRequestURI(longURL)
-	if err != nil {
-		return false
-	}
-
-	if parsedURL.Scheme == "" || parsedURL.Host == "" {
-		return false
-	}
-
-	return true
-}
 
 func IsServerAddress(addr string) bool {
 	return len(strings.Split(addr, ":")) == len(strings.Split("server:port", ":"))
@@ -72,8 +58,4 @@ func RandURL() string {
 	u.RawQuery = q.Encode()
 
 	return u.String()
-}
-
-func UUID() string {
-	return uuid.New().String()
 }

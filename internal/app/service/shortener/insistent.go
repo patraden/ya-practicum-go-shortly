@@ -1,47 +1,49 @@
-package service
+package shortener
 
 import (
+	"context"
 	"errors"
 
 	"github.com/cenkalti/backoff/v4"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
-type ShortenerService struct {
+type InsistentShortener struct {
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
 	config       *config.Config
 }
 
-func NewShortenerService(
+func NewInsistentShortener(
 	repo repository.URLRepository,
 	gen urlgenerator.URLGenerator,
 	config *config.Config,
-) *ShortenerService {
-	return &ShortenerService{
+) *InsistentShortener {
+	return &InsistentShortener{
 		repo:         repo,
 		urlGenerator: gen,
 		config:       config,
 	}
 }
 
-func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
+func (s *InsistentShortener) ShortenURL(ctx context.Context, original domain.OriginalURL) (*domain.URLMapping, error) {
 	// always assume that url generation is an non-injective function.
 	// timeout based backoff is the basic mechanism to address collisions.
 	// in case of high rates of collisions errors,
 	// the intention should rather be to improve URLGenerator algorithms or service.
-	var shortURL string
+	var slug domain.Slug
 	var err error
 
 	b := utils.LinearBackoff(s.config.URLGenTimeout, s.config.URLGenRetryInterval)
 	operation := func() error {
-		shortURL = s.urlGenerator.GenerateURL(longURL)
-		_, err = s.repo.GetURL(shortURL)
+		slug = s.urlGenerator.GenerateSlug(ctx, original)
+		_, err = s.repo.GetURLMapping(ctx, slug)
 
 		switch {
 		case errors.Is(err, e.ErrRepoNotFound):
@@ -55,34 +57,36 @@ func (s *ShortenerService) ShortenURL(longURL string) (string, error) {
 
 	err = backoff.Retry(operation, b)
 	if errors.Is(err, e.ErrServiceCollision) {
-		return "", e.ErrServiceCollision
+		return nil, e.ErrServiceCollision
 	}
 
 	if err != nil {
-		return "", e.ErrServiceInternal
+		return nil, e.ErrServiceInternal
 	}
 
-	if err = s.repo.AddURL(shortURL, longURL); err != nil {
-		return "", e.ErrServiceInternal
+	m := domain.NewURLMapping(slug, original)
+
+	if err = s.repo.AddURLMapping(ctx, m); err != nil {
+		return nil, e.ErrServiceInternal
 	}
 
-	return shortURL, nil
+	return m, nil
 }
 
-func (s *ShortenerService) GetOriginalURL(shortURL string) (string, error) {
-	if !s.urlGenerator.IsValidURL(shortURL) {
-		return "", e.ErrServiceInvalid
+func (s *InsistentShortener) GetOriginalURL(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
+	if !s.urlGenerator.IsValidSlug(slug) {
+		return nil, e.ErrServiceInvalid
 	}
 
-	longURL, err := s.repo.GetURL(shortURL)
+	m, err := s.repo.GetURLMapping(ctx, slug)
 
 	if errors.Is(err, e.ErrRepoNotFound) {
-		return "", e.ErrRepoNotFound
+		return nil, e.ErrRepoNotFound
 	}
 
 	if err != nil {
-		return "", e.ErrServiceInternal
+		return nil, e.ErrServiceInternal
 	}
 
-	return longURL, nil
+	return m, nil
 }

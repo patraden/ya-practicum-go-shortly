@@ -2,6 +2,7 @@ package errors
 
 import (
 	"errors"
+	"fmt"
 )
 
 const (
@@ -29,5 +30,12 @@ var (
 	ErrDBOpen           = errors.New("utils db: failed to open db")
 	ErrDBPing           = errors.New("utils db: failed to ping db")
 	ErrDBDSNParse       = errors.New("utils db: failed to parse dsn")
+	ErrDBEmptyPool      = errors.New("databse conn pool is empty")
 	ErrDBClose          = errors.New("utils db: close error")
+	ErrMementoCreate    = errors.New("memento: could not create astate")
+	ErrMementoRestore   = errors.New("memento: could not restore state")
 )
+
+func Wrap(msg string, err error) error {
+	return fmt.Errorf("%s: %w", msg, err)
+}

@@ -1,81 +1,66 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 )
 
 type InMemoryURLRepository struct {
 	sync.RWMutex
-	values map[string]string
+	values dto.URLMappings
 }
 
 func NewInMemoryURLRepository() *InMemoryURLRepository {
 	return &InMemoryURLRepository{
 		RWMutex: sync.RWMutex{},
-		values:  map[string]string{},
+		values:  make(dto.URLMappings),
 	}
 }
 
-func (ms *InMemoryURLRepository) AddURL(shortURL string, longURL string) error {
+func (ms *InMemoryURLRepository) AddURLMapping(_ context.Context, m *domain.URLMapping) error {
 	ms.Lock()
 	defer ms.Unlock()
 
-	if _, ok := ms.values[shortURL]; ok {
+	if _, ok := ms.values[m.Slug]; ok {
 		return e.ErrRepoExists
 	}
 
-	ms.values[shortURL] = longURL
+	ms.values[m.Slug] = *m
 
 	return nil
 }
 
-func (ms *InMemoryURLRepository) GetURL(shortURL string) (string, error) {
+func (ms *InMemoryURLRepository) GetURLMapping(_ context.Context, slug domain.Slug) (*domain.URLMapping, error) {
 	ms.RLock()
 	defer ms.RUnlock()
 
-	value, ok := ms.values[shortURL]
+	m, ok := ms.values[slug]
 	if !ok {
-		return "", e.ErrRepoNotFound
+		return nil, e.ErrRepoNotFound
 	}
 
-	return value, nil
+	return &m, nil
 }
 
-func (ms *InMemoryURLRepository) DelURL(shortURL string) error {
-	ms.Lock()
-	defer ms.Unlock()
-	delete(ms.values, shortURL)
-
-	return nil
-}
-
-func (ms *InMemoryURLRepository) deepCopyValues() map[string]string {
-	cp := make(map[string]string)
-	for k, v := range ms.values {
-		cp[k] = v
-	}
-
-	return cp
-}
-
-func (ms *InMemoryURLRepository) CreateMemento() (*Memento, error) {
+func (ms *InMemoryURLRepository) CreateMemento() (*memento.Memento, error) {
 	ms.RLock()
 	defer ms.RUnlock()
 
-	return NewURLRepositoryState(ms.deepCopyValues()), nil
+	cp := dto.URLMappingsCopy(ms.values)
+
+	return memento.NewMemento(cp), nil
 }
 
-func (ms *InMemoryURLRepository) RestoreMemento(m *Memento) error {
+func (ms *InMemoryURLRepository) RestoreMemento(m *memento.Memento) error {
 	ms.Lock()
 	defer ms.Unlock()
 
-	cp := make(map[string]string)
-	for k, v := range m.GetState() {
-		cp[k] = v
-	}
-
+	cp := dto.URLMappingsCopy(m.GetState())
 	ms.values = cp
 
 	return nil
