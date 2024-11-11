@@ -60,19 +60,3 @@ func TestInMemoryURLRepository(t *testing.T) {
 	testAddURL(t, repo)
 	testGetURL(t, repo)
 }
-
-// func TestInDBURLRepository(t *testing.T) {
-// 	t.Parallel()
-
-// 	dsn := "postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable"
-// 	ctx := context.Background()
-// 	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
-// 	db := postgres.NewDatabase(log, dsn)
-// 	db, err := db.Init(ctx)
-
-// 	require.NoError(t, err)
-
-// 	repo := repository.NewDBURLRepository(db.ConnPool, log)
-// 	testAddURL(t, repo)
-// 	testGetURL(t, repo)
-// }

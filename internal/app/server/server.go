@@ -31,7 +31,7 @@ func NewServer(
 	log zerolog.Logger,
 	db *postgres.Database,
 ) *Server {
-	srv := shortener.NewInsistentShortener(repo, gen, config)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	shandler := handler.NewShortenerHandler(srv, config, log)
 	phandler := handler.NewPingHandler(db, config, log)
 	router := handler.NewRouter(shandler, phandler, log)

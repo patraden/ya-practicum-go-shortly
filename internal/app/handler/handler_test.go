@@ -27,8 +27,8 @@ import (
 func setupEndPointTestRouter(repo repository.URLRepository) http.Handler {
 	config := config.DefaultConfig()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	shandler := h.NewShortenerHandler(srv, config, log)
 
 	return h.NewRouter(shandler, nil, log)
@@ -80,8 +80,8 @@ func setupHandlerPost() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	handler := h.NewShortenerHandler(srv, config, log)
 
 	return handler.HandleShortenURL
@@ -128,8 +128,8 @@ func setupHandleShortenURLJSON() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 
 	return h.NewShortenerHandler(srv, config, log).HandleShortenURLJSON
 }
@@ -174,7 +174,7 @@ func TestHandleGetOriginalURL(t *testing.T) {
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	originalURL := domain.OriginalURL(`https://ya.ru`)
 	baseURL := `http://localhost:8080/`
 
@@ -191,7 +191,7 @@ func TestHandleGetOriginalURL(t *testing.T) {
 		wantStatus   int
 		wantLocation string
 	}{
-		{"valid short URL", link.WithBaseURL(baseURL), http.StatusTemporaryRedirect, string(originalURL)},
+		{"valid short URL", link.Slug.WithBaseURL(baseURL).String(), http.StatusTemporaryRedirect, string(originalURL)},
 		{"invalid short URL", baseURL + "qwerty", http.StatusBadRequest, ""},
 	}
 
@@ -219,8 +219,8 @@ func setupHandleShortenURLCompression() http.Handler {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	handler := http.HandlerFunc(h.NewShortenerHandler(srv, config, log).HandleShortenURL)
 
 	return middleware.Decompress()(middleware.Compress()(handler))

@@ -34,6 +34,7 @@ var (
 	ErrDBClose          = errors.New("utils db: close error")
 	ErrMementoCreate    = errors.New("memento: could not create astate")
 	ErrMementoRestore   = errors.New("memento: could not restore state")
+	ErrURLGenerateSlugs = errors.New("urlgenerator: failed to generate slugs")
 )
 
 func Wrap(msg string, err error) error {

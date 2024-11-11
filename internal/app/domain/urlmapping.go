@@ -16,6 +16,14 @@ func (s Slug) String() string {
 	return string(s)
 }
 
+func (s *Slug) WithBaseURL(baseURL string) Slug {
+	if baseURL[len(baseURL)-1] != '/' {
+		baseURL += "/"
+	}
+
+	return Slug(baseURL + s.String())
+}
+
 func (u OriginalURL) String() string {
 	return string(u)
 }
@@ -38,14 +46,6 @@ type URLMapping struct {
 	OriginalURL OriginalURL `json:"original_url"`
 	CreatedAt   time.Time   `json:"created_at"`
 	ExpiresAt   time.Time   `json:"expires_at"`
-}
-
-func (m *URLMapping) WithBaseURL(baseURL string) string {
-	if baseURL[len(baseURL)-1] != '/' {
-		baseURL += "/"
-	}
-
-	return baseURL + string(m.Slug)
 }
 
 func (m *URLMapping) ExpiresAfter(duration time.Duration) {

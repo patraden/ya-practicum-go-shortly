@@ -79,7 +79,7 @@ func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Reque
 	w.Header().Set(ContentType, ContentTypeText)
 	w.WriteHeader(http.StatusCreated)
 
-	if _, err = w.Write([]byte(link.WithBaseURL(h.config.BaseURL))); err != nil {
+	if _, err = w.Write([]byte(link.Slug.WithBaseURL(h.config.BaseURL).String())); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
@@ -102,12 +102,38 @@ func (h *ShortenerHandler) HandleShortenURLJSON(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	urlResp := dto.ShortenedURLResponse{ShortURL: link.WithBaseURL(h.config.BaseURL)}
+	urlResp := dto.ShortenedURLResponse{ShortURL: link.Slug.WithBaseURL(h.config.BaseURL).String()}
 
 	w.Header().Set(ContentType, ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
 
 	if _, err = easyjson.MarshalToWriter(&urlResp, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+}
+
+func (h *ShortenerHandler) HandleBatchShortenURLJSON(w http.ResponseWriter, r *http.Request) {
+	var urlReqs dto.OriginalURLBatch
+
+	if err := easyjson.UnmarshalFromReader(r.Body, &urlReqs); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	batch, err := h.service.ShortenURLBatch(r.Context(), &urlReqs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set(ContentType, ContentTypeJSON)
+	w.WriteHeader(http.StatusCreated)
+
+	if _, err := easyjson.MarshalToWriter(batch, w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return

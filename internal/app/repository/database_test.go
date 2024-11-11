@@ -99,3 +99,29 @@ func TestGetURLMapping(t *testing.T) {
 
 	assert.Equal(t, urlMapping.OriginalURL, res.OriginalURL)
 }
+
+func TestAddURLMappingBatch(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	repo := repository.NewDBURLRepository(mockPool, log)
+	ctx := context.Background()
+
+	batch := &[]domain.URLMapping{
+		*domain.NewURLMapping("id1", "a"),
+		*domain.NewURLMapping("id2", "b"),
+		*domain.NewURLMapping("id3", "c"),
+	}
+
+	mockPool.ExpectBegin()
+	mockPool.
+		ExpectCopyFrom([]string{"shortener", "urlmapping"}, []string{"slug", "original", "created_at", "expires_at"}).
+		WillReturnResult(3)
+	mockPool.ExpectCommit()
+
+	err = repo.AddURLMappingBatch(ctx, batch)
+	require.NoError(t, err)
+}

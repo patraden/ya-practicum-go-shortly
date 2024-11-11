@@ -47,6 +47,21 @@ func (ms *InMemoryURLRepository) GetURLMapping(_ context.Context, slug domain.Sl
 	return &m, nil
 }
 
+func (ms *InMemoryURLRepository) AddURLMappingBatch(_ context.Context, batch *[]domain.URLMapping) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	for _, m := range *batch {
+		if _, ok := ms.values[m.Slug]; ok {
+			return e.ErrRepoExists
+		}
+
+		ms.values[m.Slug] = m
+	}
+
+	return nil
+}
+
 func (ms *InMemoryURLRepository) CreateMemento() (*memento.Memento, error) {
 	ms.RLock()
 	defer ms.RUnlock()

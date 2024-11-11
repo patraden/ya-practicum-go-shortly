@@ -24,6 +24,7 @@ func NewRouter(
 
 	router.Get("/ping", phandler.HandleDBPing)
 	router.Get("/{shortURL}", shandler.HandleGetOriginalURL)
+	router.Post("/api/shorten/batch", shandler.HandleBatchShortenURLJSON)
 	router.Post("/api/shorten", shandler.HandleShortenURLJSON)
 	router.Post("/", shandler.HandleShortenURL)
 	router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

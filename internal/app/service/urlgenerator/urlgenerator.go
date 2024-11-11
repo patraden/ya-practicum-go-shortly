@@ -13,5 +13,6 @@ import (
 // like random, incremental, hash based etc.
 type URLGenerator interface {
 	GenerateSlug(ctx context.Context, original domain.OriginalURL) domain.Slug
+	GenerateSlugs(ctx context.Context, originals []domain.OriginalURL) ([]domain.Slug, error)
 	IsValidSlug(slug domain.Slug) bool
 }

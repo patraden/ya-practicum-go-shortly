@@ -56,6 +56,20 @@ func (mr *MockURLRepositoryMockRecorder) AddURLMapping(ctx, m any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMapping", reflect.TypeOf((*MockURLRepository)(nil).AddURLMapping), ctx, m)
 }
 
+// AddURLMappingBatch mocks base method.
+func (m *MockURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddURLMappingBatch", ctx, batch)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddURLMappingBatch indicates an expected call of AddURLMappingBatch.
+func (mr *MockURLRepositoryMockRecorder) AddURLMappingBatch(ctx, batch any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMappingBatch", reflect.TypeOf((*MockURLRepository)(nil).AddURLMappingBatch), ctx, batch)
+}
+
 // GetURLMapping mocks base method.
 func (m *MockURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
 	m.ctrl.T.Helper()

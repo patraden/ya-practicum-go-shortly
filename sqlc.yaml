@@ -2,7 +2,9 @@ version: "2"
 sql:
   - engine:  "postgresql"
     queries: "sql"
-    schema:  "migrations"
+    schema:  
+      - "migrations"
+      - "sql"
     gen:
       go:
         package: "sql"
@@ -16,20 +18,16 @@ sql:
               import: "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
               package: "domain"
               type: "Slug"
-            go_struct_tag: "json:\"short_url\""
           - column: "shortener.urlmapping.original"
             go_type: 
               import: "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
               package: "domain"
               type: "OriginalURL"
-            go_struct_tag: "json:\"original_url\""
           - column: "shortener.urlmapping.created_at"
             go_type:
               import: "time"
               type: "Time"
-            go_struct_tag: "json:\"created_at\""
           - column: "shortener.urlmapping.expires_at"
             go_type:
               import: "time"
               type: "Time"
-            go_struct_tag: "json:\"expires_at\""

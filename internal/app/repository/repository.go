@@ -9,4 +9,5 @@ import (
 type URLRepository interface {
 	AddURLMapping(ctx context.Context, m *domain.URLMapping) error
 	GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error)
+	AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error
 }

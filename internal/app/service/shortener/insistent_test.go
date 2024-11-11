@@ -2,16 +2,20 @@ package shortener_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
@@ -35,7 +39,8 @@ func RunShortenURLCollisionsTests(t *testing.T, config *config.Config, repo repo
 		Return(domain.Slug("shortURL")).
 		Times(calls)
 
-	srv := shortener.NewInsistentShortener(repo, mockURLGen, config)
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, mockURLGen, config, log)
 
 	t.Run("url collisions test", func(t *testing.T) {
 		t.Parallel()
@@ -96,7 +101,8 @@ func RunShortenURLErrTests(t *testing.T, config *config.Config, gen urlgenerator
 			Times(1),
 	)
 
-	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config)
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config, log)
 
 	t.Run("ShortenURLErr", func(t *testing.T) {
 		t.Parallel()
@@ -133,7 +139,8 @@ func RunGetOriginalURLErrTests(t *testing.T, config *config.Config, gen urlgener
 			Times(1),
 	)
 
-	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config)
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config, log)
 	badURL := domain.Slug(utils.RandomString(config.URLsize + 1))
 
 	_, err := srv.GetOriginalURL(context.Background(), badURL)
@@ -152,7 +159,8 @@ func TestURLShortener(t *testing.T) {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	srv := shortener.NewInsistentShortener(repo, gen, config)
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 
 	// store and restore good urls.
 	for range numStoreRestoreTests {
@@ -165,4 +173,63 @@ func TestURLShortener(t *testing.T) {
 	// internal errors.
 	RunShortenURLErrTests(t, config, gen)
 	RunGetOriginalURLErrTests(t, config, gen)
+}
+
+func TestShortenURLBatchProblematicGenerator(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockURLGen := mock.NewMockURLGenerator(ctrl)
+	config := config.DefaultConfig()
+	originals := []domain.OriginalURL{
+		"http:/ya.ru",
+		"http:/ya.com",
+		"http:/ya.de",
+	}
+	batch := make(dto.OriginalURLBatch, len(originals))
+	repo := repository.NewInMemoryURLRepository()
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, mockURLGen, config, log)
+	ctx := context.Background()
+
+	for i, original := range originals {
+		batch[i] = dto.CorrelatedOriginalURL{CorrelationID: strconv.Itoa(i), OriginalURL: original}
+	}
+
+	mockURLGen.
+		EXPECT().
+		GenerateSlugs(gomock.Any(), originals).
+		Return([]domain.Slug{}, e.ErrURLGenerateSlugs)
+
+	val, err := srv.ShortenURLBatch(ctx, &batch)
+	require.ErrorIs(t, err, e.ErrServiceInternal)
+	assert.Empty(t, val)
+}
+
+func TestShortenURLBatchProblematicRepo(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockURLRepo := mock.NewMockURLRepository(ctrl)
+	config := config.DefaultConfig()
+	originals := []domain.OriginalURL{
+		"http:/ya.ru",
+		"http:/ya.com",
+		"http:/ya.de",
+	}
+	batch := make(dto.OriginalURLBatch, len(originals))
+	gen := urlgenerator.NewRandURLGenerator(8)
+	log := logger.NewLogger(zerolog.DebugLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(mockURLRepo, gen, config, log)
+	ctx := context.Background()
+
+	mockURLRepo.
+		EXPECT().
+		AddURLMappingBatch(gomock.Any(), gomock.Any()).
+		Return(e.ErrRepoExists).
+		AnyTimes()
+
+	val, err := srv.ShortenURLBatch(ctx, &batch)
+	require.ErrorIs(t, err, e.ErrServiceInternal)
+	assert.Empty(t, val)
 }

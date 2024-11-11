@@ -56,6 +56,21 @@ func (mr *MockURLGeneratorMockRecorder) GenerateSlug(ctx, original any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSlug", reflect.TypeOf((*MockURLGenerator)(nil).GenerateSlug), ctx, original)
 }
 
+// GenerateSlugs mocks base method.
+func (m *MockURLGenerator) GenerateSlugs(ctx context.Context, originals []domain.OriginalURL) ([]domain.Slug, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateSlugs", ctx, originals)
+	ret0, _ := ret[0].([]domain.Slug)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateSlugs indicates an expected call of GenerateSlugs.
+func (mr *MockURLGeneratorMockRecorder) GenerateSlugs(ctx, originals any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSlugs", reflect.TypeOf((*MockURLGenerator)(nil).GenerateSlugs), ctx, originals)
+}
+
 // IsValidSlug mocks base method.
 func (m *MockURLGenerator) IsValidSlug(slug domain.Slug) bool {
 	m.ctrl.T.Helper()

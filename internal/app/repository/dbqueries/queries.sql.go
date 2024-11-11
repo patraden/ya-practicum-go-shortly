@@ -18,10 +18,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type AddURLMappingParams struct {
-	Slug      domain.Slug        `db:"slug" json:"short_url"`
-	Original  domain.OriginalURL `db:"original" json:"original_url"`
-	CreatedAt time.Time          `db:"created_at" json:"created_at"`
-	ExpiresAt time.Time          `db:"expires_at" json:"expires_at"`
+	Slug      domain.Slug        `db:"slug"`
+	Original  domain.OriginalURL `db:"original"`
+	CreatedAt time.Time          `db:"created_at"`
+	ExpiresAt time.Time          `db:"expires_at"`
 }
 
 func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) error {
@@ -32,6 +32,13 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) er
 		arg.ExpiresAt,
 	)
 	return err
+}
+
+type AddURLMappingBatchCopyParams struct {
+	Slug      domain.Slug        `db:"slug"`
+	Original  domain.OriginalURL `db:"original"`
+	CreatedAt time.Time          `db:"created_at"`
+	ExpiresAt time.Time          `db:"expires_at"`
 }
 
 const GetURLMapping = `-- name: GetURLMapping :one

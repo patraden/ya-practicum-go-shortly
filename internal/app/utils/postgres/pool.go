@@ -14,5 +14,6 @@ type ConnenctionPool interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 	BeginTx(ctx context.Context, options pgx.TxOptions) (pgx.Tx, error)
 	Ping(ctx context.Context) error
+	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
 	Close()
 }

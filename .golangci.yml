@@ -75,6 +75,7 @@ linters-settings:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
       - '^net/url.URL$'
       - '^net/http.Server$'
+      - '^github\.com/jackc/pgx/v5\.TxOptions$'
 
   gosec:
   # To specify a set of rules to explicitly exclude.

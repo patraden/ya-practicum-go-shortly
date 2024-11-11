@@ -8,6 +8,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
 
@@ -136,4 +137,57 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 	}
 
 	return urlMap, nil
+}
+
+func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error {
+	retriableQuery := func() error {
+		trx, err := repo.connPool.BeginTx(ctx, pgx.TxOptions{})
+		if err != nil {
+			return e.Wrap("failed to start batch tx", err)
+		}
+
+		defer func() {
+			if err := trx.Commit(ctx); err != nil {
+				repo.log.
+					Error().
+					Err(err).
+					Msg("failed to commit batch tx")
+			}
+		}()
+
+		txQueries := repo.queries.WithTx(trx)
+		batchParams := make([]q.AddURLMappingBatchCopyParams, len(*batch))
+
+		for i, urlMapping := range *batch {
+			batchParams[i] = q.AddURLMappingBatchCopyParams{
+				Slug:      urlMapping.Slug,
+				Original:  urlMapping.OriginalURL,
+				CreatedAt: urlMapping.CreatedAt,
+				ExpiresAt: urlMapping.ExpiresAt,
+			}
+		}
+
+		rowsAffected, err := txQueries.AddURLMappingBatchCopy(ctx, batchParams)
+		if err != nil {
+			if err := trx.Rollback(ctx); err != nil {
+				return e.Wrap("failed to commit batch tx", err)
+			}
+
+			return e.Wrap("error while running batch tx", err)
+		}
+
+		repo.log.
+			Info().
+			Int64("rows_affected", rowsAffected).
+			Msg("loaded urlmappings in batch tx")
+
+		return nil
+	}
+
+	err := repo.WithRetry(ctx, retriableQuery)
+	if err != nil {
+		return e.Wrap("failed to add urlmapping:", err)
+	}
+
+	return nil
 }

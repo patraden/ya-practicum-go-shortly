@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 )
 
 type RandURLGenerator struct {
@@ -40,4 +41,25 @@ func (g *RandURLGenerator) IsValidSlug(slug domain.Slug) bool {
 	validShortURL := regexp.MustCompile(regexPattern)
 
 	return validShortURL.MatchString(slug.String())
+}
+
+func (g *RandURLGenerator) GenerateSlugs(ctx context.Context, originals []domain.OriginalURL) ([]domain.Slug, error) {
+	unique := make(map[domain.Slug]interface{}, len(originals))
+	res := make([]domain.Slug, len(originals))
+	i := 0
+
+	for i < len(originals) {
+		select {
+		case <-ctx.Done():
+			return []domain.Slug{}, e.ErrURLGenerateSlugs
+		default:
+			slug := g.GenerateSlug(ctx, originals[i])
+			if _, exists := unique[slug]; !exists {
+				res[i] = slug
+				i++
+			}
+		}
+	}
+
+	return res, nil
 }
