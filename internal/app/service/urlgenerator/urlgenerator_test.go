@@ -1,11 +1,13 @@
 package urlgenerator_test
 
 import (
+	"context"
 	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 )
 
 const (
@@ -26,15 +28,15 @@ func RandomString(n int) string {
 	return string(b)
 }
 
-func RunURLGeneratorTests(t *testing.T, generator urlgenerator.URLGenerator, url string) {
+func RunURLGeneratorTests(t *testing.T, generator urlgenerator.URLGenerator, original domain.OriginalURL) {
 	t.Helper()
 	t.Run("GenerateURL", func(t *testing.T) {
 		t.Parallel()
 
-		shortURL := generator.GenerateURL(url)
+		slug := generator.GenerateSlug(context.Background(), original)
 
-		if !generator.IsValidURL(shortURL) {
-			t.Errorf("Generated URL is not valid: %s", shortURL)
+		if !generator.IsValidSlug(slug) {
+			t.Errorf("Generated slug invalid: %s", slug.String())
 		}
 	})
 }
@@ -45,6 +47,7 @@ func TestRandURLGenerator(t *testing.T) {
 	generator := urlgenerator.NewRandURLGenerator(shortURLSize)
 
 	for range numTest {
-		RunURLGeneratorTests(t, generator, RandomString(longURLSize))
+		original := domain.OriginalURL(RandomString(longURLSize))
+		RunURLGeneratorTests(t, generator, original)
 	}
 }

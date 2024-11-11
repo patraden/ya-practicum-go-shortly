@@ -10,28 +10,31 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
 
 type Server struct {
 	*http.Server
-	config  *config.Config
-	repo    repository.URLRepository
-	manager *repository.StateManager
-	log     zerolog.Logger
+	config *config.Config
+	repo   repository.URLRepository
+	log    zerolog.Logger
 }
 
 func NewServer(
 	config *config.Config,
 	repo repository.URLRepository,
-	manager *repository.StateManager,
 	gen urlgenerator.URLGenerator,
 	log zerolog.Logger,
+	db *postgres.Database,
 ) *Server {
-	service := service.NewShortenerService(repo, gen, config)
-	router := handler.NewRouter(service, config, log)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
+	shandler := handler.NewShortenerHandler(srv, config, log)
+	phandler := handler.NewPingHandler(db, config, log)
+	router := handler.NewRouter(shandler, phandler, log)
 
 	return &Server{
 		Server: &http.Server{
@@ -41,20 +44,21 @@ func NewServer(
 			WriteTimeout:      config.ServerWriteTimeout,
 			IdleTimeout:       config.ServerIdleTimeout,
 		},
-		config:  config,
-		repo:    repo,
-		manager: manager,
-		log:     log,
+		config: config,
+		repo:   repo,
+		log:    log,
 	}
 }
 
 func (s *Server) Start() {
-	if !s.config.ForceEmptyRepo {
+	if originator, ok := s.repo.(memento.Originator); ok && !s.config.ForceEmptyRepo {
+		manager := memento.NewStateManager(s.config, originator, s.log)
+
 		s.log.
 			Info().
 			Str("file_storage_path", s.config.FileStoragePath).
 			Msg("restoring repository from file")
-		s.loadRepositoryState()
+		s.loadRepositoryState(manager)
 	}
 
 	go func() {
@@ -71,12 +75,13 @@ func (s *Server) WaitForShutdown(stopChan <-chan os.Signal) {
 	<-stopChan
 	s.log.Info().Msg("Shutdown signal received")
 
-	if !s.config.ForceEmptyRepo {
+	if originator, ok := s.repo.(memento.Originator); ok && !s.config.ForceEmptyRepo {
+		manager := memento.NewStateManager(s.config, originator, s.log)
 		s.log.
 			Info().
 			Str("file_storage_path", s.config.FileStoragePath).
 			Msg("saving repository to file")
-		s.saveRepositoryState()
+		s.saveRepositoryState(manager)
 	}
 
 	s.shutdownWithTimeout()
@@ -96,17 +101,8 @@ func (s *Server) shutdownWithTimeout() {
 	}
 }
 
-func (s *Server) saveRepositoryState() {
-	memento, err := s.repo.CreateMemento()
-	if err != nil {
-		s.log.Error().
-			Err(err).
-			Msg("Failed to create repository state")
-
-		return
-	}
-
-	if err := s.manager.SaveToFile(memento); err != nil {
+func (s *Server) saveRepositoryState(manager *memento.StateManager) {
+	if err := manager.StoreToFile(); err != nil {
 		s.log.Error().
 			Err(err).
 			Str("file_storage_path", s.config.FileStoragePath).
@@ -114,18 +110,8 @@ func (s *Server) saveRepositoryState() {
 	}
 }
 
-func (s *Server) loadRepositoryState() {
-	memento, err := s.manager.LoadFromFile()
-	if err != nil {
-		s.log.Error().
-			Err(err).
-			Str("file_storage_path", s.config.FileStoragePath).
-			Msg("Failed to load state from file")
-
-		return
-	}
-
-	if err := s.repo.RestoreMemento(memento); err != nil {
+func (s *Server) loadRepositoryState(manager *memento.StateManager) {
+	if err := manager.RestoreFromFile(); err != nil {
 		s.log.Error().
 			Err(err).
 			Str("file_storage_path", s.config.FileStoragePath).

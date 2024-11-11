@@ -10,11 +10,12 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
 
-	repository "github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 )
 
 // MockURLRepository is a mock of URLRepository interface.
@@ -41,74 +42,45 @@ func (m *MockURLRepository) EXPECT() *MockURLRepositoryMockRecorder {
 	return m.recorder
 }
 
-// AddURL mocks base method.
-func (m *MockURLRepository) AddURL(shortURL, longURL string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddURL", shortURL, longURL)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddURL indicates an expected call of AddURL.
-func (mr *MockURLRepositoryMockRecorder) AddURL(shortURL, longURL any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURL", reflect.TypeOf((*MockURLRepository)(nil).AddURL), shortURL, longURL)
-}
-
-// CreateMemento mocks base method.
-func (m *MockURLRepository) CreateMemento() (*repository.Memento, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMemento")
-	ret0, _ := ret[0].(*repository.Memento)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateMemento indicates an expected call of CreateMemento.
-func (mr *MockURLRepositoryMockRecorder) CreateMemento() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMemento", reflect.TypeOf((*MockURLRepository)(nil).CreateMemento))
-}
-
-// DelURL mocks base method.
-func (m *MockURLRepository) DelURL(shortURL string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DelURL", shortURL)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DelURL indicates an expected call of DelURL.
-func (mr *MockURLRepositoryMockRecorder) DelURL(shortURL any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelURL", reflect.TypeOf((*MockURLRepository)(nil).DelURL), shortURL)
-}
-
-// GetURL mocks base method.
-func (m *MockURLRepository) GetURL(shortURL string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetURL", shortURL)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetURL indicates an expected call of GetURL.
-func (mr *MockURLRepositoryMockRecorder) GetURL(shortURL any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockURLRepository)(nil).GetURL), shortURL)
-}
-
-// RestoreMemento mocks base method.
-func (m_2 *MockURLRepository) RestoreMemento(m *repository.Memento) error {
+// AddURLMapping mocks base method.
+func (m_2 *MockURLRepository) AddURLMapping(ctx context.Context, m *domain.URLMapping) error {
 	m_2.ctrl.T.Helper()
-	ret := m_2.ctrl.Call(m_2, "RestoreMemento", m)
+	ret := m_2.ctrl.Call(m_2, "AddURLMapping", ctx, m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RestoreMemento indicates an expected call of RestoreMemento.
-func (mr *MockURLRepositoryMockRecorder) RestoreMemento(m any) *gomock.Call {
+// AddURLMapping indicates an expected call of AddURLMapping.
+func (mr *MockURLRepositoryMockRecorder) AddURLMapping(ctx, m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreMemento", reflect.TypeOf((*MockURLRepository)(nil).RestoreMemento), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMapping", reflect.TypeOf((*MockURLRepository)(nil).AddURLMapping), ctx, m)
+}
+
+// AddURLMappingBatch mocks base method.
+func (m *MockURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddURLMappingBatch", ctx, batch)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddURLMappingBatch indicates an expected call of AddURLMappingBatch.
+func (mr *MockURLRepositoryMockRecorder) AddURLMappingBatch(ctx, batch any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMappingBatch", reflect.TypeOf((*MockURLRepository)(nil).AddURLMappingBatch), ctx, batch)
+}
+
+// GetURLMapping mocks base method.
+func (m *MockURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetURLMapping", ctx, slug)
+	ret0, _ := ret[0].(*domain.URLMapping)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetURLMapping indicates an expected call of GetURLMapping.
+func (mr *MockURLRepositoryMockRecorder) GetURLMapping(ctx, slug any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLMapping", reflect.TypeOf((*MockURLRepository)(nil).GetURLMapping), ctx, slug)
 }

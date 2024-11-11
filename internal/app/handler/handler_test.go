@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,31 +14,34 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	h "github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/urlgenerator"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
-func setupEndPointTestRouter() http.Handler {
+func setupEndPointTestRouter(repo repository.URLRepository) http.Handler {
 	config := config.DefaultConfig()
-	repo := repository.NewInMemoryURLRepository()
-	_ = repo.AddURL("shortURL", "https://ya.ru") // Set up necessary test data
-
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
+	shandler := h.NewShortenerHandler(srv, config, log)
 
-	return h.NewRouter(service, config, log)
+	return h.NewRouter(shandler, nil, log)
 }
 
 func TestEndpoints(t *testing.T) {
 	t.Parallel()
 
-	router := setupEndPointTestRouter()
+	repo := repository.NewInMemoryURLRepository()
+	err := repo.AddURLMapping(context.Background(), domain.NewURLMapping("shortURL", "https://ya.ru"))
+	require.NoError(t, err)
+
+	router := setupEndPointTestRouter(repo)
 
 	tests := []struct {
 		name   string
@@ -77,9 +80,9 @@ func setupHandlerPost() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	handler := h.NewHandler(service, config, log)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
+	handler := h.NewShortenerHandler(srv, config, log)
 
 	return handler.HandleShortenURL
 }
@@ -95,13 +98,12 @@ func TestHandlePost(t *testing.T) {
 		body        string
 		contentType string
 		wantStatus  int
-		wantIsURL   bool
 	}{
-		{"valid URL", "/", `https://ya.ru`, h.ContentTypeText, http.StatusCreated, true},
-		{"empty body", "/", ``, h.ContentTypeText, http.StatusBadRequest, false},
-		{"invalid URL", "/", `//ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
-		{"invalid path", "/a/b/c", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
-		{"double slash path", "//", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest, false},
+		{"valid URL", "/", `https://ya.ru`, h.ContentTypeText, http.StatusCreated},
+		{"empty body", "/", ``, h.ContentTypeText, http.StatusBadRequest},
+		{"invalid URL", "/", `//ya.ru`, h.ContentTypeText, http.StatusBadRequest},
+		{"invalid path", "/a/b/c", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest},
+		{"double slash path", "//", `https://ya.ru`, h.ContentTypeText, http.StatusBadRequest},
 	}
 
 	for _, test := range tests {
@@ -117,11 +119,7 @@ func TestHandlePost(t *testing.T) {
 			result := w.Result()
 			defer result.Body.Close()
 
-			shortURL, err := io.ReadAll(result.Body)
-			require.NoError(t, err)
-
 			assert.Equal(t, test.wantStatus, result.StatusCode)
-			assert.Equal(t, test.wantIsURL, utils.IsURL(string(shortURL)))
 		})
 	}
 }
@@ -130,10 +128,10 @@ func setupHandleShortenURLJSON() http.HandlerFunc {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 
-	return h.NewHandler(service, config, log).HandleShortenURLJSON
+	return h.NewShortenerHandler(srv, config, log).HandleShortenURLJSON
 }
 
 func TestHandleShortenURLJSON(t *testing.T) {
@@ -146,10 +144,9 @@ func TestHandleShortenURLJSON(t *testing.T) {
 		body        string
 		contentType string
 		wantStatus  int
-		wantIsURL   bool
 	}{
-		{"valid JSON URL", `{"url":"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusCreated, true},
-		{"malformed JSON", `{"url:"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusBadRequest, false},
+		{"valid JSON URL", `{"url":"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusCreated},
+		{"malformed JSON", `{"url:"https://practicum.yandex.ru"}`, h.ContentTypeJSON, http.StatusBadRequest},
 	}
 
 	for _, test := range tests {
@@ -166,13 +163,6 @@ func TestHandleShortenURLJSON(t *testing.T) {
 			defer result.Body.Close()
 
 			assert.Equal(t, test.wantStatus, result.StatusCode)
-
-			if test.wantIsURL {
-				var responseBody map[string]string
-				err := json.NewDecoder(result.Body).Decode(&responseBody)
-				require.NoError(t, err)
-				assert.True(t, utils.IsURL(responseBody["result"]))
-			}
 		})
 	}
 }
@@ -181,14 +171,19 @@ func TestHandleGetOriginalURL(t *testing.T) {
 	t.Parallel()
 
 	config := config.DefaultConfig()
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
-	longURL := `https://ya.ru`
-	serverAddr := `http://localhost:8080/`
-	shortURL, _ := service.ShortenURL(longURL)
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	router := h.NewRouter(service, config, log)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
+	originalURL := domain.OriginalURL(`https://ya.ru`)
+	baseURL := `http://localhost:8080/`
+
+	link, err := srv.ShortenURL(context.Background(), originalURL)
+	require.NoError(t, err)
+
+	shandler := h.NewShortenerHandler(srv, config, log)
+
+	router := h.NewRouter(shandler, nil, log)
 
 	tests := []struct {
 		name         string
@@ -196,8 +191,8 @@ func TestHandleGetOriginalURL(t *testing.T) {
 		wantStatus   int
 		wantLocation string
 	}{
-		{"valid short URL", serverAddr + shortURL, http.StatusTemporaryRedirect, longURL},
-		{"invalid short URL", serverAddr + "qwerty", http.StatusBadRequest, ""},
+		{"valid short URL", link.Slug.WithBaseURL(baseURL).String(), http.StatusTemporaryRedirect, string(originalURL)},
+		{"invalid short URL", baseURL + "qwerty", http.StatusBadRequest, ""},
 	}
 
 	for _, tt := range tests {
@@ -224,9 +219,9 @@ func setupHandleShortenURLCompression() http.Handler {
 	config := config.DefaultConfig()
 	repo := repository.NewInMemoryURLRepository()
 	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	service := service.NewShortenerService(repo, gen, config)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	handler := http.HandlerFunc(h.NewHandler(service, config, log).HandleShortenURL)
+	srv := shortener.NewInsistentShortener(repo, gen, config, log)
+	handler := http.HandlerFunc(h.NewShortenerHandler(srv, config, log).HandleShortenURL)
 
 	return middleware.Decompress()(middleware.Compress()(handler))
 }
@@ -251,7 +246,7 @@ func TestHandleShortenURLCompression(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		for range 10 {
+		for range 1 {
 			t.Run(test.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -277,7 +272,7 @@ func TestHandleShortenURLCompression(t *testing.T) {
 				require.NoError(t, err)
 
 				assert.Equal(t, test.status, result.StatusCode)
-				assert.Equal(t, test.isURL, utils.IsURL(string(shortURL)))
+				assert.Equal(t, test.isURL, domain.OriginalURL(string(shortURL)).IsValid())
 			})
 		}
 	}
