@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/jackc/pgerrcode"
@@ -12,12 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
-func TestAddURLMapping(t *testing.T) {
+func TestAddURLMappingSuccess(t *testing.T) {
 	t.Parallel()
 
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
@@ -30,24 +31,59 @@ func TestAddURLMapping(t *testing.T) {
 	urlMapping := domain.NewURLMapping("a", "b")
 
 	mockPool.
-		ExpectExec(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
 		WithArgs(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt).
-		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		WillReturnRows(pgxmock.NewRows([]string{"slug", "original", "created_at", "expires_at"}).
+			AddRow(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt))
 
-	err = repo.AddURLMapping(ctx, urlMapping)
+	result, err := repo.AddURLMapping(ctx, urlMapping)
+	require.NoError(t, err)
+	require.Equal(t, urlMapping.Slug, result.Slug)
+	require.Equal(t, urlMapping.OriginalURL, result.OriginalURL)
+	require.Equal(t, urlMapping.CreatedAt, result.CreatedAt)
+	require.Equal(t, urlMapping.ExpiresAt, result.ExpiresAt)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+func TestAddURLMappingErrors(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
 	require.NoError(t, err)
 
-	// collisions when duplicate
+	repo := repository.NewDBURLRepository(mockPool, log)
+	ctx := context.Background()
+
+	urlMapping := domain.NewURLMapping("slug1", "url1")
+	urlMappingDup := domain.NewURLMapping("slug2", "url1")
+
+	// unique vialation for duplicate slug
 	mockPool.
-		ExpectExec(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
 		WithArgs(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt).
 		WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
 
-	err = repo.AddURLMapping(ctx, urlMapping)
-	require.ErrorIs(t, err, e.ErrRepoExists)
+	_, err = repo.AddURLMapping(ctx, urlMapping)
+	require.ErrorIs(t, err, e.ErrSlugExists)
+
+	// duplicate url will not trigger error but rather return existing slug
+	mockPool.
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		WithArgs(urlMappingDup.Slug, urlMappingDup.OriginalURL, urlMappingDup.CreatedAt, urlMappingDup.ExpiresAt).
+		WillReturnRows(pgxmock.NewRows([]string{"slug", "original", "created_at", "expires_at"}).
+			AddRow(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt))
+
+	_, err = repo.AddURLMapping(ctx, urlMappingDup)
+	require.ErrorIs(t, err, e.ErrOriginalExists)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestRetriable(t *testing.T) {
+func TestAddURLMappingRetriable(t *testing.T) {
 	t.Parallel()
 
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
@@ -59,12 +95,25 @@ func TestRetriable(t *testing.T) {
 	urlMapping := domain.NewURLMapping("a", "b")
 
 	mockPool.
-		ExpectExec(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
 		WithArgs(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt).
-		WillReturnError(&pgconn.PgError{Code: pgerrcode.ConnectionFailure})
+		WillReturnError(&pgconn.PgError{Code: pgerrcode.ConnectionFailure}) // First retry
+	mockPool.
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		WithArgs(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt).
+		WillReturnError(&pgconn.PgError{Code: pgerrcode.ConnectionFailure}) // Second retry
+	mockPool.
+		ExpectQuery(`INSERT INTO shortener.urlmapping \(slug, original, created_at, expires_at\)`).
+		WithArgs(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt).
+		WillReturnRows(pgxmock.NewRows([]string{"slug", "original", "created_at", "expires_at"}).
+			AddRow(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt)) // Success on third try
 
-	err = repo.AddURLMapping(ctx, urlMapping)
-	require.ErrorContains(t, err, `call to method Exec() was not expected`)
+	result, err := repo.AddURLMapping(ctx, urlMapping)
+	require.NoError(t, err)
+	require.Equal(t, urlMapping.Slug, result.Slug)
+	require.Equal(t, urlMapping.OriginalURL, result.OriginalURL)
+	require.Equal(t, urlMapping.CreatedAt, result.CreatedAt)
+	require.Equal(t, urlMapping.ExpiresAt, result.ExpiresAt)
 
 	err = mockPool.ExpectationsWereMet()
 	require.NoError(t, err)
@@ -81,26 +130,46 @@ func TestGetURLMapping(t *testing.T) {
 	ctx := context.Background()
 	urlMapping := domain.NewURLMapping("a", "b")
 
-	expctedRes := pgxmock.NewRows([]string{`slug`, `original`, `created_at`, `expires_at`}).
-		AddRow(
-			urlMapping.Slug,
-			urlMapping.OriginalURL,
-			urlMapping.CreatedAt,
-			urlMapping.ExpiresAt,
-		)
+	// success
+	expectedRes := pgxmock.NewRows([]string{"slug", "original", "created_at", "expires_at"}).
+		AddRow(urlMapping.Slug, urlMapping.OriginalURL, urlMapping.CreatedAt, urlMapping.ExpiresAt)
 
 	mockPool.
 		ExpectQuery(`SELECT slug, original, created_at, expires_at`).
 		WithArgs(urlMapping.Slug).
-		WillReturnRows(expctedRes)
+		WillReturnRows(expectedRes)
 
 	res, err := repo.GetURLMapping(ctx, urlMapping.Slug)
 	require.NoError(t, err)
-
 	assert.Equal(t, urlMapping.OriginalURL, res.OriginalURL)
+	assert.Equal(t, urlMapping.CreatedAt, res.CreatedAt)
+	assert.Equal(t, urlMapping.ExpiresAt, res.ExpiresAt)
+
+	// failure not found
+	mockPool.
+		ExpectQuery(`SELECT slug, original, created_at, expires_at`).
+		WithArgs(urlMapping.Slug).
+		WillReturnError(sql.ErrNoRows)
+
+	res, err = repo.GetURLMapping(ctx, urlMapping.Slug)
+	require.ErrorIs(t, err, e.ErrSlugNotFound)
+	assert.Nil(t, res)
+
+	// failure retriable
+	mockPool.
+		ExpectQuery(`SELECT slug, original, created_at, expires_at`).
+		WithArgs(urlMapping.Slug).
+		WillReturnError(&pgconn.PgError{Code: pgerrcode.ConnectionFailure})
+
+	res, err = repo.GetURLMapping(ctx, urlMapping.Slug)
+	require.Error(t, err)
+	assert.Nil(t, res)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestAddURLMappingBatch(t *testing.T) {
+func TestAddURLMappingBatchSuccess(t *testing.T) {
 	t.Parallel()
 
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
@@ -111,9 +180,9 @@ func TestAddURLMappingBatch(t *testing.T) {
 	ctx := context.Background()
 
 	batch := &[]domain.URLMapping{
-		*domain.NewURLMapping("id1", "a"),
-		*domain.NewURLMapping("id2", "b"),
-		*domain.NewURLMapping("id3", "c"),
+		*domain.NewURLMapping("a", "x"),
+		*domain.NewURLMapping("b", "y"),
+		*domain.NewURLMapping("c", "z"),
 	}
 
 	mockPool.ExpectBegin()
@@ -123,5 +192,51 @@ func TestAddURLMappingBatch(t *testing.T) {
 	mockPool.ExpectCommit()
 
 	err = repo.AddURLMappingBatch(ctx, batch)
+	require.NoError(t, err)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+func TestAddURLMappingBatchFailure(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	repo := repository.NewDBURLRepository(mockPool, log)
+	ctx := context.Background()
+
+	batch := &[]domain.URLMapping{
+		*domain.NewURLMapping("a", "x"),
+		*domain.NewURLMapping("b", "y"),
+		*domain.NewURLMapping("c", "z"),
+	}
+
+	mockPool.ExpectBegin()
+	mockPool.
+		ExpectCopyFrom([]string{"shortener", "urlmapping"}, []string{"slug", "original", "created_at", "expires_at"}).
+		WillReturnError(e.ErrTestGeneral)
+	mockPool.ExpectRollback()
+	mockPool.ExpectCommit() // commit is done in any case
+
+	err = repo.AddURLMappingBatch(ctx, batch)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "error while running batch tx")
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
+
+	mockPool.ExpectBegin()
+	mockPool.
+		ExpectCopyFrom([]string{"shortener", "urlmapping"}, []string{"slug", "original", "created_at", "expires_at"}).
+		WillReturnResult(3)
+	mockPool.ExpectCommit().WillReturnError(e.ErrTestGeneral)
+
+	err = repo.AddURLMappingBatch(ctx, batch)
+	require.NoError(t, err) // commit errors just logged and ignored
+
+	err = mockPool.ExpectationsWereMet()
 	require.NoError(t, err)
 }

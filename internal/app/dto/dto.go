@@ -25,14 +25,6 @@ type CorrelatedSlug struct {
 	Slug          domain.Slug `json:"short_url"`
 }
 
-func (s *CorrelatedSlug) WithBaseURL(baseURL string) domain.Slug {
-	if baseURL[len(baseURL)-1] != '/' {
-		baseURL += "/"
-	}
-
-	return domain.Slug(baseURL + string(s.Slug))
-}
-
 //easyjson:json
 type OriginalURLBatch []CorrelatedOriginalURL
 

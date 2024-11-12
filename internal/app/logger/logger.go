@@ -10,8 +10,8 @@ type Logger struct {
 	log zerolog.Logger
 }
 
-func NewLogger(level zerolog.Level) Logger {
-	return Logger{
+func NewLogger(level zerolog.Level) *Logger {
+	return &Logger{
 		log: zerolog.New(os.Stdout).
 			With().
 			Timestamp().
@@ -20,6 +20,6 @@ func NewLogger(level zerolog.Level) Logger {
 	}
 }
 
-func (l Logger) GetLogger() zerolog.Logger {
-	return l.log
+func (l *Logger) GetLogger() *zerolog.Logger {
+	return &l.log
 }

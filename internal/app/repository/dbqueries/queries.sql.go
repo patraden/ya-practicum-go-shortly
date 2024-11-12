@@ -12,9 +12,14 @@ import (
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 )
 
-const AddURLMapping = `-- name: AddURLMapping :exec
+const AddURLMapping = `-- name: AddURLMapping :one
 INSERT INTO shortener.urlmapping (slug, original, created_at, expires_at)
 VALUES ($1, $2, $3, $4)
+ON CONFLICT (original) DO UPDATE
+SET slug = shortener.urlmapping.slug,
+    created_at = shortener.urlmapping.created_at,
+    expires_at = shortener.urlmapping.expires_at
+RETURNING slug, original, created_at, expires_at
 `
 
 type AddURLMappingParams struct {
@@ -24,14 +29,21 @@ type AddURLMappingParams struct {
 	ExpiresAt time.Time          `db:"expires_at"`
 }
 
-func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) error {
-	_, err := q.db.Exec(ctx, AddURLMapping,
+func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (ShortenerUrlmapping, error) {
+	row := q.db.QueryRow(ctx, AddURLMapping,
 		arg.Slug,
 		arg.Original,
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
-	return err
+	var i ShortenerUrlmapping
+	err := row.Scan(
+		&i.Slug,
+		&i.Original,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
 }
 
 type AddURLMappingBatchCopyParams struct {

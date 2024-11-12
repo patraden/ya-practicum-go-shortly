@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
-	"fmt"
 	"io"
 
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
 func EncoderGzip(w io.Writer, level int) io.Writer {
@@ -58,27 +57,27 @@ func Compress(data []byte, encoding string) ([]byte, error) {
 	case "":
 		return data, nil
 	default:
-		return data, fmt.Errorf("%w: bad encoding %s", e.ErrUtils, encoding)
+		return data, e.ErrUtilsCompEncoding
 	}
 
 	w := encoder(&buf, flate.BestCompression)
 	if w == nil {
-		return data, fmt.Errorf("%w: could't get writer for %s", e.ErrUtils, encoding)
+		return data, e.ErrUtilsEncoderOpen
 	}
 
 	wc, ok := w.(io.WriteCloser)
 	if !ok {
-		return data, fmt.Errorf("%w: could't get writecloser for %s", e.ErrUtils, encoding)
+		return data, e.ErrUtilsEncoderCast
 	}
 
 	_, err := wc.Write(data)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", e.ErrUtils.Error(), err)
+		return nil, e.Wrap("compression encoder write error", err, errLabel)
 	}
 
 	err = wc.Close()
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", e.ErrUtils.Error(), err)
+		return nil, e.Wrap("compression encoder close error", err, errLabel)
 	}
 
 	return buf.Bytes(), nil
@@ -96,7 +95,7 @@ func Decompress(data []byte, encoding string) ([]byte, error) {
 	case "":
 		return data, nil
 	default:
-		return data, fmt.Errorf("%w: bad encoding %s", e.ErrUtils, encoding)
+		return data, e.ErrUtilsDecompionEncoding
 	}
 
 	r := decoder(bytes.NewReader(data))
@@ -106,7 +105,7 @@ func Decompress(data []byte, encoding string) ([]byte, error) {
 
 	_, err := b.ReadFrom(r)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", e.ErrUtils.Error(), err)
+		return nil, e.Wrap("decompression decoder read error", err, errLabel)
 	}
 
 	return b.Bytes(), nil

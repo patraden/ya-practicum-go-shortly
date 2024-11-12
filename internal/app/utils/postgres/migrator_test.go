@@ -6,7 +6,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
 
@@ -17,7 +16,7 @@ func TestMigrator(t *testing.T) {
 	require.NoError(t, err)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(".*").WillReturnError(errors.ErrTest)
+	mock.ExpectExec(".*").WillReturnError(err)
 
 	tests := []struct {
 		name    string

@@ -12,10 +12,10 @@ import (
 type PingHandler struct {
 	db     *postgres.Database
 	config *config.Config
-	log    zerolog.Logger
+	log    *zerolog.Logger
 }
 
-func NewPingHandler(db *postgres.Database, config *config.Config, log zerolog.Logger) *PingHandler {
+func NewPingHandler(db *postgres.Database, config *config.Config, log *zerolog.Logger) *PingHandler {
 	return &PingHandler{
 		db:     db,
 		config: config,

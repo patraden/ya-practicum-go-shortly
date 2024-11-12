@@ -43,11 +43,12 @@ func (m *MockURLRepository) EXPECT() *MockURLRepositoryMockRecorder {
 }
 
 // AddURLMapping mocks base method.
-func (m_2 *MockURLRepository) AddURLMapping(ctx context.Context, m *domain.URLMapping) error {
+func (m_2 *MockURLRepository) AddURLMapping(ctx context.Context, m *domain.URLMapping) (*domain.URLMapping, error) {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "AddURLMapping", ctx, m)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*domain.URLMapping)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // AddURLMapping indicates an expected call of AddURLMapping.

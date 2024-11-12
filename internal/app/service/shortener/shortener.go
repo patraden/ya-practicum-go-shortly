@@ -7,8 +7,10 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 )
 
+const errLabel = "shortener"
+
 type URLShortener interface {
-	ShortenURL(ctx context.Context, original domain.OriginalURL) (*domain.URLMapping, error)
-	GetOriginalURL(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error)
-	ShortenURLBatch(ctx context.Context, batch *dto.OriginalURLBatch) (dto.SlugBatch, error)
+	ShortenURL(ctx context.Context, original domain.OriginalURL) (domain.Slug, error)
+	GetOriginalURL(ctx context.Context, slug domain.Slug) (domain.OriginalURL, error)
+	ShortenURLBatch(ctx context.Context, batch *dto.OriginalURLBatch) (*dto.SlugBatch, error)
 }

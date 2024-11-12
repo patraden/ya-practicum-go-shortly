@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	q "github.com/patraden/ya-practicum-go-shortly/internal/app/repository/dbqueries"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
@@ -27,10 +27,10 @@ const (
 type DBURLRepository struct {
 	connPool postgres.ConnenctionPool
 	queries  *q.Queries
-	log      zerolog.Logger
+	log      *zerolog.Logger
 }
 
-func NewDBURLRepository(pool postgres.ConnenctionPool, log zerolog.Logger) *DBURLRepository {
+func NewDBURLRepository(pool postgres.ConnenctionPool, log *zerolog.Logger) *DBURLRepository {
 	return &DBURLRepository{
 		connPool: pool,
 		queries:  q.New(pool),
@@ -70,9 +70,9 @@ func (repo *DBURLRepository) WithRetry(ctx context.Context, query func() error) 
 				repo.log.
 					Info().
 					Err(err).
-					Msg("collision error")
+					Msg("slug collision error")
 
-				return backoff.Permanent(e.ErrRepoExists)
+				return backoff.Permanent(e.ErrSlugExists)
 			}
 
 			return backoff.Permanent(err)
@@ -83,28 +83,46 @@ func (repo *DBURLRepository) WithRetry(ctx context.Context, query func() error) 
 
 	err := backoff.Retry(operation, backoff.WithContext(boff, ctx))
 	if err != nil {
-		return e.Wrap("retry error:", err)
+		return e.Wrap("retry error:", err, errLabel)
 	}
 
 	return nil
 }
 
-func (repo *DBURLRepository) AddURLMapping(ctx context.Context, m *domain.URLMapping) error {
+func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.URLMapping) (*domain.URLMapping, error) {
+	var res *domain.URLMapping
+
 	retriableQuery := func() error {
-		return repo.queries.AddURLMapping(ctx, q.AddURLMappingParams{
-			Slug:      m.Slug,
-			Original:  m.OriginalURL,
-			CreatedAt: m.CreatedAt,
-			ExpiresAt: m.ExpiresAt,
+		qm, err := repo.queries.AddURLMapping(ctx, q.AddURLMappingParams{
+			Slug:      urlMap.Slug,
+			Original:  urlMap.OriginalURL,
+			CreatedAt: urlMap.CreatedAt,
+			ExpiresAt: urlMap.ExpiresAt,
 		})
+		if err != nil {
+			return e.Wrap("failed to query", err, errLabel)
+		}
+
+		res = &domain.URLMapping{
+			Slug:        qm.Slug,
+			OriginalURL: qm.Original,
+			CreatedAt:   qm.CreatedAt,
+			ExpiresAt:   qm.ExpiresAt,
+		}
+
+		return nil
 	}
 
 	err := repo.WithRetry(ctx, retriableQuery)
 	if err != nil {
-		return e.Wrap("failed to add urlmapping:", err)
+		return res, e.Wrap("failed to add urlmapping", err, errLabel)
 	}
 
-	return nil
+	if res.Slug != urlMap.Slug {
+		return res, e.ErrOriginalExists
+	}
+
+	return res, nil
 }
 
 func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
@@ -114,11 +132,11 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 		qm, err := repo.queries.GetURLMapping(ctx, slug)
 
 		if errors.Is(err, sql.ErrNoRows) {
-			return e.ErrRepoNotFound
+			return e.ErrSlugNotFound
 		}
 
 		if err != nil {
-			return e.Wrap("query error", err)
+			return e.Wrap("failed to query", err, errLabel)
 		}
 
 		urlMap = &domain.URLMapping{
@@ -133,7 +151,7 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 
 	err := repo.WithRetry(ctx, retriableQuery)
 	if err != nil {
-		return nil, e.Wrap("failed to get urlmapping:", err)
+		return nil, e.Wrap("failed to get urlmapping", err, errLabel)
 	}
 
 	return urlMap, nil
@@ -143,7 +161,7 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 	retriableQuery := func() error {
 		trx, err := repo.connPool.BeginTx(ctx, pgx.TxOptions{})
 		if err != nil {
-			return e.Wrap("failed to start batch tx", err)
+			return e.Wrap("failed to start batch tx", err, errLabel)
 		}
 
 		defer func() {
@@ -170,10 +188,15 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 		rowsAffected, err := txQueries.AddURLMappingBatchCopy(ctx, batchParams)
 		if err != nil {
 			if err := trx.Rollback(ctx); err != nil {
-				return e.Wrap("failed to commit batch tx", err)
+				repo.log.
+					Error().
+					Err(err).
+					Msg("failed to rollback batch tx")
+
+				return e.Wrap("failed to rollback batch tx", err, errLabel)
 			}
 
-			return e.Wrap("error while running batch tx", err)
+			return e.Wrap("error while running batch tx", err, errLabel)
 		}
 
 		repo.log.
@@ -186,7 +209,7 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 
 	err := repo.WithRetry(ctx, retriableQuery)
 	if err != nil {
-		return e.Wrap("failed to add urlmapping:", err)
+		return e.Wrap("failed to add urlmapping:", err, errLabel)
 	}
 
 	return nil

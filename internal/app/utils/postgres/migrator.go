@@ -7,7 +7,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
 type Migrator struct {
@@ -26,11 +26,11 @@ func NewMigrator(db *sql.DB, dialect, dir string) *Migrator {
 
 func (m *Migrator) Up() error {
 	if err := goose.SetDialect(m.dialect); err != nil {
-		return e.Wrap("failed to set dialect:", err)
+		return e.Wrap("failed to set dialect:", err, errLabel)
 	}
 
 	if err := goose.Up(m.db, m.dir); err != nil {
-		return e.Wrap("failed to apply migrations:", err)
+		return e.Wrap("failed to apply migrations:", err, errLabel)
 	}
 
 	return nil
@@ -39,7 +39,7 @@ func (m *Migrator) Up() error {
 func NewPGMigrator(connString, dir string) (*Migrator, error) {
 	db, err := sql.Open("pgx", connString)
 	if err != nil {
-		return nil, e.Wrap("failed to open db:", err)
+		return nil, e.Wrap("failed to open db:", err, errLabel)
 	}
 
 	return &Migrator{

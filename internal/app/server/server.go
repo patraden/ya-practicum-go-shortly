@@ -21,14 +21,14 @@ type Server struct {
 	*http.Server
 	config *config.Config
 	repo   repository.URLRepository
-	log    zerolog.Logger
+	log    *zerolog.Logger
 }
 
 func NewServer(
 	config *config.Config,
 	repo repository.URLRepository,
 	gen urlgenerator.URLGenerator,
-	log zerolog.Logger,
+	log *zerolog.Logger,
 	db *postgres.Database,
 ) *Server {
 	srv := shortener.NewInsistentShortener(repo, gen, config, log)

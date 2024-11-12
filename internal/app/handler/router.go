@@ -12,7 +12,7 @@ import (
 func NewRouter(
 	shandler *ShortenerHandler,
 	phandler *PingHandler,
-	log zerolog.Logger,
+	log *zerolog.Logger,
 ) http.Handler {
 	router := chi.NewRouter()
 

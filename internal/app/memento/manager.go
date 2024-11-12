@@ -2,7 +2,6 @@ package memento
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 
@@ -11,22 +10,23 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 )
 
 const (
 	PermReadWriteUser = 0o644 // Read/write for owner, read-only for others
 	EOL               = "\n"
+	errLabel          = "memento"
 )
 
 type StateManager struct {
 	config     *config.Config
 	originator Originator
-	log        zerolog.Logger
+	log        *zerolog.Logger
 }
 
-func NewStateManager(config *config.Config, originator Originator, log zerolog.Logger) *StateManager {
+func NewStateManager(config *config.Config, originator Originator, log *zerolog.Logger) *StateManager {
 	return &StateManager{
 		config:     config,
 		originator: originator,
@@ -36,7 +36,7 @@ func NewStateManager(config *config.Config, originator Originator, log zerolog.L
 
 func (sm *StateManager) RestoreFromState(state *Memento) error {
 	if err := sm.originator.RestoreMemento(state); err != nil {
-		return e.ErrMementoRestore
+		return e.ErrStateRestore
 	}
 
 	return nil
@@ -55,7 +55,7 @@ func (sm *StateManager) RestoreFromFile() error {
 	}
 
 	if err := sm.originator.RestoreMemento(state); err != nil {
-		return e.ErrMementoRestore
+		return e.ErrStateRestore
 	}
 
 	return nil
@@ -70,7 +70,7 @@ func (sm *StateManager) StoreToFile() error {
 
 	state, err := sm.originator.CreateMemento()
 	if err != nil {
-		return e.ErrMementoCreate
+		return e.ErrStateCreate
 	}
 
 	err = w.SaveState(state)
@@ -84,13 +84,18 @@ func (sm *StateManager) StoreToFile() error {
 type Reader struct {
 	file    *os.File
 	scanner *bufio.Scanner
-	log     zerolog.Logger
+	log     *zerolog.Logger
 }
 
-func NewReader(fileName string, log zerolog.Logger) (*Reader, error) {
+func NewReader(fileName string, log *zerolog.Logger) (*Reader, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, PermReadWriteUser)
 	if err != nil {
-		return nil, fmt.Errorf(e.WrapOpenFile, fileName, err)
+		log.Error().
+			Err(err).
+			Str("filename", fileName).
+			Msg("failed to open file")
+
+		return nil, e.Wrap("failed to open file", err, errLabel)
 	}
 
 	return &Reader{
@@ -102,6 +107,7 @@ func NewReader(fileName string, log zerolog.Logger) (*Reader, error) {
 
 func (r *Reader) LoadState() (*Memento, error) {
 	state := make(dto.URLMappings)
+	var count int
 
 	if err := r.Reset(); err != nil {
 		return nil, err
@@ -113,10 +119,16 @@ func (r *Reader) LoadState() (*Memento, error) {
 
 		err := link.UnmarshalJSON(data)
 		if err != nil {
-			return nil, fmt.Errorf(e.WrapUnmarchalJSON, err)
+			r.log.Error().
+				Err(err).
+				Msg("failed to unmarchal state")
+
+			return nil, e.Wrap("failed to unmarshal state", err, errLabel)
 		}
 
 		state[link.Slug] = link
+		count++
+
 		r.log.Info().
 			Str("short_url", string(link.Slug)).
 			Str("long_url", string(link.OriginalURL)).
@@ -125,16 +137,20 @@ func (r *Reader) LoadState() (*Memento, error) {
 			Msg("loaded record")
 	}
 
-	if r.scanner.Err() == nil {
-		return NewMemento(state), nil
+	if err := r.scanner.Err(); err != nil {
+		return nil, e.Wrap("file scanner error", err, errLabel)
 	}
 
-	return nil, fmt.Errorf(e.WrapFileRead, r.scanner.Err())
+	r.log.Info().
+		Int("total_records", count).
+		Msg("completed loading state")
+
+	return NewMemento(state), nil
 }
 
 func (r *Reader) Reset() error {
 	if _, err := r.file.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf(e.WrapFileReset, r.scanner.Err())
+		return e.Wrap("file scanner seek error", err, errLabel)
 	}
 
 	r.scanner = bufio.NewScanner(r.file)
@@ -145,7 +161,7 @@ func (r *Reader) Reset() error {
 func (r *Reader) Close() error {
 	err := r.file.Close()
 	if err != nil {
-		return fmt.Errorf(e.WrapCloseFile, r.file.Name(), err)
+		return e.Wrap("failed to close file", err, errLabel)
 	}
 
 	return nil
@@ -153,13 +169,18 @@ func (r *Reader) Close() error {
 
 type Writer struct {
 	file *os.File
-	log  zerolog.Logger
+	log  *zerolog.Logger
 }
 
-func NewWriter(fileName string, log zerolog.Logger) (*Writer, error) {
+func NewWriter(fileName string, log *zerolog.Logger) (*Writer, error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, PermReadWriteUser)
 	if err != nil {
-		return nil, fmt.Errorf(e.WrapOpenFile, fileName, err)
+		log.Error().
+			Err(err).
+			Str("filename", fileName).
+			Msg("failed to open file")
+
+		return nil, e.Wrap("failed to open file", err, errLabel)
 	}
 
 	return &Writer{
@@ -169,14 +190,26 @@ func NewWriter(fileName string, log zerolog.Logger) (*Writer, error) {
 }
 
 func (w *Writer) SaveState(state *Memento) error {
+	writer := bufio.NewWriter(w.file)
+	defer writer.Flush()
+
+	var count int
+
 	for _, link := range state.GetState() {
-		if _, err := easyjson.MarshalToWriter(link, w.file); err != nil {
-			return fmt.Errorf(e.WrapMarchalJSON, err)
+		if _, err := easyjson.MarshalToWriter(link, writer); err != nil {
+			w.log.
+				Error().
+				Err(err).
+				Msg("failed to write state")
+
+			return e.Wrap("failed to write state", err, errLabel)
 		}
 
-		if _, err := w.file.WriteString(EOL); err != nil {
-			return fmt.Errorf(e.WrapFileWrite, err)
+		if _, err := writer.WriteString(EOL); err != nil {
+			return e.Wrap("failed to write EOL", err, errLabel)
 		}
+
+		count++
 
 		w.log.Info().
 			Str("short_url", string(link.Slug)).
@@ -186,13 +219,17 @@ func (w *Writer) SaveState(state *Memento) error {
 			Msg("preserved record")
 	}
 
+	w.log.Info().
+		Int("total_records", count).
+		Msg("completed saving state")
+
 	return nil
 }
 
 func (w *Writer) Close() error {
 	err := w.file.Close()
 	if err != nil {
-		return fmt.Errorf(e.WrapCloseFile, w.file.Name(), err)
+		return e.Wrap("failed to close file", err, errLabel)
 	}
 
 	return nil

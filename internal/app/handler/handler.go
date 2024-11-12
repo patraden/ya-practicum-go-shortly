@@ -11,8 +11,8 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 )
 
@@ -25,10 +25,10 @@ const (
 type ShortenerHandler struct {
 	service shortener.URLShortener
 	config  *config.Config
-	log     zerolog.Logger
+	log     *zerolog.Logger
 }
 
-func NewShortenerHandler(service shortener.URLShortener, config *config.Config, log zerolog.Logger) *ShortenerHandler {
+func NewShortenerHandler(service shortener.URLShortener, config *config.Config, log *zerolog.Logger) *ShortenerHandler {
 	return &ShortenerHandler{
 		service: service,
 		config:  config,
@@ -38,24 +38,24 @@ func NewShortenerHandler(service shortener.URLShortener, config *config.Config, 
 
 func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	slug := domain.Slug(chi.URLParam(r, "shortURL"))
-	link, err := h.service.GetOriginalURL(r.Context(), slug)
+	original, err := h.service.GetOriginalURL(r.Context(), slug)
 
 	switch {
-	case errors.Is(err, e.ErrServiceInvalid):
+	case errors.Is(err, e.ErrSlugInvalid):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
 		return
-	case errors.Is(err, e.ErrRepoNotFound):
+	case errors.Is(err, e.ErrSlugNotFound):
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 		return
-	case errors.Is(err, e.ErrServiceInternal) || err != nil:
+	case errors.Is(err, e.ErrShortenerInternal) || err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
 	}
 
-	w.Header().Add("Location", string(link.OriginalURL))
+	w.Header().Add("Location", original.String())
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -69,17 +69,22 @@ func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	link, err := h.service.ShortenURL(r.Context(), originalURL)
-	if err != nil {
+	slug, err := h.service.ShortenURL(r.Context(), originalURL)
+	if err != nil && !errors.Is(err, e.ErrOriginalExists) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
 	}
 
 	w.Header().Set(ContentType, ContentTypeText)
-	w.WriteHeader(http.StatusCreated)
 
-	if _, err = w.Write([]byte(link.Slug.WithBaseURL(h.config.BaseURL).String())); err != nil {
+	if errors.Is(err, e.ErrOriginalExists) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
+
+	if _, err = w.Write([]byte(slug.WithBaseURL(h.config.BaseURL))); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
@@ -95,17 +100,22 @@ func (h *ShortenerHandler) HandleShortenURLJSON(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	link, err := h.service.ShortenURL(r.Context(), domain.OriginalURL(urlReq.LongURL))
-	if err != nil {
+	slug, err := h.service.ShortenURL(r.Context(), domain.OriginalURL(urlReq.LongURL))
+	if err != nil && !errors.Is(err, e.ErrOriginalExists) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
 	}
 
-	urlResp := dto.ShortenedURLResponse{ShortURL: link.Slug.WithBaseURL(h.config.BaseURL).String()}
+	urlResp := dto.ShortenedURLResponse{ShortURL: slug.WithBaseURL(h.config.BaseURL)}
 
 	w.Header().Set(ContentType, ContentTypeJSON)
-	w.WriteHeader(http.StatusCreated)
+
+	if errors.Is(err, e.ErrOriginalExists) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	if _, err = easyjson.MarshalToWriter(&urlResp, w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -130,10 +140,18 @@ func (h *ShortenerHandler) HandleBatchShortenURLJSON(w http.ResponseWriter, r *h
 		return
 	}
 
+	result := make(dto.SlugBatch, len(*batch))
+	for i, elem := range *batch {
+		result[i] = dto.CorrelatedSlug{
+			CorrelationID: elem.CorrelationID,
+			Slug:          domain.Slug(elem.Slug.WithBaseURL(h.config.BaseURL)),
+		}
+	}
+
 	w.Header().Set(ContentType, ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
 
-	if _, err := easyjson.MarshalToWriter(batch, w); err != nil {
+	if _, err := easyjson.MarshalToWriter(result, w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return

@@ -16,12 +16,12 @@ func (s Slug) String() string {
 	return string(s)
 }
 
-func (s *Slug) WithBaseURL(baseURL string) Slug {
+func (s *Slug) WithBaseURL(baseURL string) string {
 	if baseURL[len(baseURL)-1] != '/' {
 		baseURL += "/"
 	}
 
-	return Slug(baseURL + s.String())
+	return baseURL + s.String()
 }
 
 func (u OriginalURL) String() string {

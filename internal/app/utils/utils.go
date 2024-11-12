@@ -9,6 +9,8 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
+const errLabel = "utils"
+
 func IsServerAddress(addr string) bool {
 	return len(strings.Split(addr, ":")) == len(strings.Split("server:port", ":"))
 }

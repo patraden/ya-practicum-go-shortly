@@ -8,7 +8,7 @@ import (
 
 	"github.com/caarlos0/env/v6"
 
-	e "github.com/patraden/ya-practicum-go-shortly/internal/app/errors"
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
@@ -33,7 +33,7 @@ func newBuilder() *builder {
 
 func (b *builder) loadEnvConfig() {
 	if err := env.Parse(b.env); err != nil {
-		log.Fatal(e.ErrConfEnv)
+		log.Fatal(e.ErrEnvConfigParse)
 	}
 }
 
@@ -66,7 +66,7 @@ func (b *builder) getConfig() *Config {
 	cfg.ForceEmptyRepo = b.flags.ForceEmptyRepo
 
 	if !utils.IsServerAddress(cfg.ServerAddr) {
-		log.Fatal(e.ErrConfParams)
+		log.Fatal(e.ErrInvalidConfig)
 	}
 
 	if !strings.HasSuffix(cfg.BaseURL, "/") {

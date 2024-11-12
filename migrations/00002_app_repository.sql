@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS shortener.urlmapping (
   slug        VARCHAR(8)    PRIMARY KEY,
-  original    VARCHAR(2048) NOT NULL,
+  original    VARCHAR(2048) UNIQUE NOT NULL,
   created_at  TIMESTAMP     NOT NULL,
   expires_at  TIMESTAMP     NULL
 );
