@@ -64,10 +64,13 @@ linters-settings:
     # Regular expressions must match complete canonical struct package/name/structname.
     # Default: []
     exclude:
-      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
-      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/repository\.FileRecord$'
       - '^net/url.URL$'
       - '^net/http.Server$'
+      - '^github\.com/jackc/pgx/v5\.TxOptions$'
+      - '^github\.com/jackc/pgx/v5/pgconn\.PgError$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/config\.Config$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
 
   gosec:
   # To specify a set of rules to explicitly exclude.
@@ -89,7 +92,7 @@ linters-settings:
   gci:
     sections:
       - standard
-      - default
       - prefix(github.com/patraden/ya-practicum-go-shortly)
+      - default
 
 

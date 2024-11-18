@@ -7,6 +7,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+const errLabel = "middleware"
+
 func Compress() func(next http.Handler) http.Handler {
 	return middleware.Compress(flate.DefaultCompression, "application/json", "text/plain")
 }

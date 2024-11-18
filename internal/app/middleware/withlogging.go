@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog"
+
+	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
 type (
@@ -25,7 +26,7 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	r.responseData.size += size
 
 	if err != nil {
-		return size, fmt.Errorf("failed to write response: %w", err)
+		return size, e.Wrap("failed to write response", err, errLabel)
 	}
 
 	return size, nil
@@ -36,13 +37,13 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func Logger(log zerolog.Logger) func(next http.Handler) http.Handler {
+func Logger(log *zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return WithLogging(next, log)
 	}
 }
 
-func WithLogging(h http.Handler, log zerolog.Logger) http.Handler {
+func WithLogging(h http.Handler, log *zerolog.Logger) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
