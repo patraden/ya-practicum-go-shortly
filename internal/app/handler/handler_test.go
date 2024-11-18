@@ -30,30 +30,38 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
-func TestHandleGetOriginalURL(t *testing.T) {
-	t.Parallel()
+func setupHandler(t *testing.T) (*gomock.Controller, *mock.MockURLShortener, *handler.ShortenerHandler) {
+	t.Helper()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	mockSrv := mock.NewMockURLShortener(ctrl)
 	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
 	config := &config.Config{BaseURL: "http://base.url"}
-	handler := handler.NewShortenerHandler(mockSrv, config, log)
+	h := handler.NewShortenerHandler(mockSrv, config, log)
 
-	tests := []struct {
-		name         string
-		shortURL     string
-		mockBehavior func()
-		expectedCode int
-		expectedBody string
-	}{
+	return ctrl, mockSrv, h
+}
+
+type testCaseGetOriginalURL struct {
+	name         string
+	shortURL     string
+	mockBehavior func()
+	expectedCode int
+	expectedBody string
+}
+
+func TestHandleGetOriginalURL(t *testing.T) {
+	t.Parallel()
+
+	ctrl, mockSrv, handler := setupHandler(t)
+	defer ctrl.Finish()
+
+	tests := []testCaseGetOriginalURL{
 		{
 			name:     "Successful Redirect",
 			shortURL: "shortURL",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
+				mockSrv.EXPECT().GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
 					Return(domain.OriginalURL("https://ya.ru"), nil).Times(1)
 			},
 			expectedCode: http.StatusTemporaryRedirect,
@@ -63,8 +71,7 @@ func TestHandleGetOriginalURL(t *testing.T) {
 			name:     "Slug Not Found",
 			shortURL: "shortURL",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
+				mockSrv.EXPECT().GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
 					Return(domain.OriginalURL(""), e.ErrSlugNotFound)
 			},
 			expectedCode: http.StatusNotFound,
@@ -74,8 +81,7 @@ func TestHandleGetOriginalURL(t *testing.T) {
 			name:     "Slug Invalid",
 			shortURL: "shortURL",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
+				mockSrv.EXPECT().GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
 					Return(domain.OriginalURL(""), e.ErrSlugInvalid)
 			},
 			expectedCode: http.StatusBadRequest,
@@ -85,8 +91,7 @@ func TestHandleGetOriginalURL(t *testing.T) {
 			name:     "Internal Error",
 			shortURL: "shortURL",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
+				mockSrv.EXPECT().GetOriginalURL(gomock.Any(), domain.Slug("shortURL")).
 					Return(domain.OriginalURL(""), e.ErrShortenerInternal)
 			},
 			expectedCode: http.StatusInternalServerError,
@@ -94,42 +99,43 @@ func TestHandleGetOriginalURL(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockBehavior()
-
-			req := httptest.NewRequest(http.MethodGet, "/{shortURL}/", nil)
-			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("shortURL", tt.shortURL)
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
-
-			w := httptest.NewRecorder()
-
-			handler.HandleGetOriginalURL(w, req)
-
-			res := w.Result()
-			defer res.Body.Close()
-
-			assert.Equal(t, tt.expectedCode, res.StatusCode)
-
-			if tt.expectedBody != "" {
-				body, _ := io.ReadAll(res.Body)
-				assert.Contains(t, string(body), tt.expectedBody)
-			}
-		})
+	for _, test := range tests {
+		runHandleGetOriginalURL(t, handler, test)
 	}
+}
+
+func runHandleGetOriginalURL(t *testing.T, handler *handler.ShortenerHandler, test testCaseGetOriginalURL) {
+	t.Helper()
+
+	t.Run(test.name, func(t *testing.T) {
+		test.mockBehavior()
+
+		req := httptest.NewRequest(http.MethodGet, "/{shortURL}/", nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("shortURL", test.shortURL)
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+		w := httptest.NewRecorder()
+
+		handler.HandleGetOriginalURL(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		assert.Equal(t, test.expectedCode, res.StatusCode)
+
+		if test.expectedBody != "" {
+			body, _ := io.ReadAll(res.Body)
+			assert.Contains(t, string(body), test.expectedBody)
+		}
+	})
 }
 
 func TestHandleShortenURL(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
+	ctrl, mockSrv, handler := setupHandler(t)
 	defer ctrl.Finish()
-
-	mockSrv := mock.NewMockURLShortener(ctrl)
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	config := &config.Config{BaseURL: "http://base.url"}
-	handler := handler.NewShortenerHandler(mockSrv, config, log)
 
 	tests := []struct {
 		name         string
@@ -142,8 +148,7 @@ func TestHandleShortenURL(t *testing.T) {
 			name: "Successful Shorten URL",
 			body: "https://example.com",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
+				mockSrv.EXPECT().ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
 					Return(domain.Slug("shortURL"), nil).Times(1)
 			},
 			expectedCode: http.StatusCreated,
@@ -153,8 +158,7 @@ func TestHandleShortenURL(t *testing.T) {
 			name: "Original Exists Conflict",
 			body: "https://example.com",
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
+				mockSrv.EXPECT().ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
 					Return(domain.Slug("shortURL"), e.ErrOriginalExists)
 			},
 			expectedCode: http.StatusConflict,
@@ -189,30 +193,26 @@ func TestHandleShortenURL(t *testing.T) {
 	}
 }
 
+type testCaseShortenURLJSON struct {
+	name         string
+	body         string
+	mockBehavior func()
+	expectedCode int
+	expectedBody string
+}
+
 func TestHandleShortenURLJSON(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
+	ctrl, mockSrv, handler := setupHandler(t)
 	defer ctrl.Finish()
 
-	mockSrv := mock.NewMockURLShortener(ctrl)
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	config := &config.Config{BaseURL: "http://base.url"}
-	handler := handler.NewShortenerHandler(mockSrv, config, log)
-
-	tests := []struct {
-		name         string
-		body         string
-		mockBehavior func()
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []testCaseShortenURLJSON{
 		{
 			name: "Successful Shorten URL JSON",
 			body: `{"url": "https://example.com"}`,
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
+				mockSrv.EXPECT().ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
 					Return(domain.Slug("shortURL"), nil).Times(1)
 			},
 			expectedCode: http.StatusCreated,
@@ -222,8 +222,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 			name: "Original Exists Conflict JSON",
 			body: `{"url": "https://example.com"}`,
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
+				mockSrv.EXPECT().ShortenURL(gomock.Any(), domain.OriginalURL("https://example.com")).
 					Return(domain.Slug("shortURL"), e.ErrOriginalExists)
 			},
 			expectedCode: http.StatusConflict,
@@ -238,11 +237,11 @@ func TestHandleShortenURLJSON(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockBehavior()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.mockBehavior()
 
-			req := httptest.NewRequest(http.MethodPost, "/", io.NopCloser(strings.NewReader(tt.body)))
+			req := httptest.NewRequest(http.MethodPost, "/", io.NopCloser(strings.NewReader(test.body)))
 			req.Header.Set("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()
@@ -252,32 +251,29 @@ func TestHandleShortenURLJSON(t *testing.T) {
 			res := w.Result()
 			defer res.Body.Close()
 
-			assert.Equal(t, tt.expectedCode, res.StatusCode)
+			assert.Equal(t, test.expectedCode, res.StatusCode)
 
 			body, _ := io.ReadAll(res.Body)
-			assert.Contains(t, string(body), tt.expectedBody)
+			assert.Contains(t, string(body), test.expectedBody)
 		})
 	}
+}
+
+type testCaseBatchShortenURLJSON struct {
+	name         string
+	inputBatch   dto.OriginalURLBatch
+	mockBehavior func()
+	expectedCode int
+	expectedBody dto.SlugBatch
 }
 
 func TestHandleBatchShortenURLJSON(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
+	ctrl, mockSrv, handler := setupHandler(t)
 	defer ctrl.Finish()
 
-	mockSrv := mock.NewMockURLShortener(ctrl)
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	config := &config.Config{BaseURL: "http://base.url"}
-	handler := handler.NewShortenerHandler(mockSrv, config, log)
-
-	tests := []struct {
-		name         string
-		inputBatch   dto.OriginalURLBatch
-		mockBehavior func()
-		expectedCode int
-		expectedBody dto.SlugBatch
-	}{
+	tests := []testCaseBatchShortenURLJSON{
 		{
 			name: "Successful Batch Shorten",
 			inputBatch: dto.OriginalURLBatch{
@@ -285,15 +281,13 @@ func TestHandleBatchShortenURLJSON(t *testing.T) {
 				{CorrelationID: "2", OriginalURL: domain.OriginalURL("https://example2.com")},
 			},
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURLBatch(gomock.Any(), &dto.OriginalURLBatch{
-						{CorrelationID: "1", OriginalURL: domain.OriginalURL("https://example1.com")},
-						{CorrelationID: "2", OriginalURL: domain.OriginalURL("https://example2.com")},
-					}).
-					Return(&dto.SlugBatch{
-						{CorrelationID: "1", Slug: domain.Slug("short1")},
-						{CorrelationID: "2", Slug: domain.Slug("short2")},
-					}, nil).Times(1)
+				mockSrv.EXPECT().ShortenURLBatch(gomock.Any(), &dto.OriginalURLBatch{
+					{CorrelationID: "1", OriginalURL: domain.OriginalURL("https://example1.com")},
+					{CorrelationID: "2", OriginalURL: domain.OriginalURL("https://example2.com")},
+				}).Return(&dto.SlugBatch{
+					{CorrelationID: "1", Slug: domain.Slug("short1")},
+					{CorrelationID: "2", Slug: domain.Slug("short2")},
+				}, nil).Times(1)
 			},
 			expectedCode: http.StatusCreated,
 			expectedBody: dto.SlugBatch{
@@ -307,42 +301,47 @@ func TestHandleBatchShortenURLJSON(t *testing.T) {
 				{CorrelationID: "1", OriginalURL: domain.OriginalURL("https://example1.com")},
 			},
 			mockBehavior: func() {
-				mockSrv.EXPECT().
-					ShortenURLBatch(gomock.Any(), gomock.Any()).
-					Return(nil, e.ErrShortenerInternal).Times(1)
+				mockSrv.EXPECT().ShortenURLBatch(gomock.Any(), gomock.Any()).
+					Return(nil, e.ErrShortenerInternal)
 			},
 			expectedCode: http.StatusInternalServerError,
 			expectedBody: nil,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockBehavior()
-
-			reqBody, _ := easyjson.Marshal(tt.inputBatch)
-			req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", io.NopCloser(bytes.NewReader(reqBody)))
-			w := httptest.NewRecorder()
-
-			handler.HandleBatchShortenURLJSON(w, req)
-
-			res := w.Result()
-			defer res.Body.Close()
-
-			assert.Equal(t, tt.expectedCode, res.StatusCode)
-
-			if tt.expectedBody != nil {
-				var response dto.SlugBatch
-				body, _ := io.ReadAll(res.Body)
-				_ = easyjson.Unmarshal(body, &response)
-
-				for i, expectedSlug := range tt.expectedBody {
-					assert.Equal(t, expectedSlug.CorrelationID, response[i].CorrelationID)
-					assert.Equal(t, expectedSlug.Slug, response[i].Slug)
-				}
-			}
-		})
+	for _, test := range tests {
+		runBatchShortenURLJSON(t, handler, test)
 	}
+}
+
+func runBatchShortenURLJSON(t *testing.T, handler *handler.ShortenerHandler, test testCaseBatchShortenURLJSON) {
+	t.Helper()
+
+	t.Run(test.name, func(t *testing.T) {
+		test.mockBehavior()
+
+		reqBody, _ := easyjson.Marshal(test.inputBatch)
+		req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", io.NopCloser(bytes.NewReader(reqBody)))
+		w := httptest.NewRecorder()
+
+		handler.HandleBatchShortenURLJSON(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		assert.Equal(t, test.expectedCode, res.StatusCode)
+
+		if test.expectedBody != nil {
+			var response dto.SlugBatch
+			body, _ := io.ReadAll(res.Body)
+			_ = easyjson.Unmarshal(body, &response)
+
+			for i, expectedSlug := range test.expectedBody {
+				assert.Equal(t, expectedSlug.CorrelationID, response[i].CorrelationID)
+				assert.Equal(t, expectedSlug.Slug, response[i].Slug)
+			}
+		}
+	})
 }
 
 func setupHandleShortenURLCompression() http.Handler {

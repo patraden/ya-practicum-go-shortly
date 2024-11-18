@@ -18,18 +18,32 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 )
 
-func TestShortenURL(t *testing.T) {
-	t.Parallel()
+func setupShortenURLTest(t *testing.T) (
+	*gomock.Controller,
+	*shortener.InsistentShortener,
+	*mock.MockURLRepository,
+	*mock.MockURLGenerator,
+	*config.Config,
+) {
+	t.Helper()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	repo := mock.NewMockURLRepository(ctrl)
 	urlGen := mock.NewMockURLGenerator(ctrl)
 	config := config.DefaultConfig()
 	log := zerolog.New(nil)
 	svc := shortener.NewInsistentShortener(repo, urlGen, config, &log)
+
+	return ctrl, svc, repo, urlGen, config
+}
+
+func TestShortenURL(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
+
+	ctrl, svc, repo, urlGen, config := setupShortenURLTest(t)
+	defer ctrl.Finish()
 
 	t.Run("successfully shortens a URL", func(t *testing.T) {
 		urlMapping := domain.NewURLMapping("slug1", "http://example.com")
@@ -44,10 +58,8 @@ func TestShortenURL(t *testing.T) {
 	})
 
 	t.Run("returns error on slug collision", func(t *testing.T) {
-		original := domain.OriginalURL("http://example.com")
-		slug := domain.Slug("slug1")
+		original, slug := domain.OriginalURL("http://example.com"), domain.Slug("slug1")
 		urlMapping := domain.NewURLMapping("slug1", "http://example.com")
-		// we expected calles as per linear backoff
 		calls := int(config.URLGenTimeout / config.URLGenRetryInterval)
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), original).Return(slug).Times(calls)
@@ -57,14 +69,12 @@ func TestShortenURL(t *testing.T) {
 		result, err := svc.ShortenURL(ctx, original)
 		// ensure retries are not exceeding max time
 		assert.LessOrEqual(t, time.Since(start), config.URLGenTimeout)
-		// ensure colission error is returned
 		require.ErrorIs(t, err, e.ErrSlugCollision)
 		assert.Equal(t, domain.Slug(""), result)
 	})
 
 	t.Run("returns internal error on unexpected repository failure", func(t *testing.T) {
-		original := domain.OriginalURL("http://example.com")
-		slug := domain.Slug("short1")
+		original, slug := domain.OriginalURL("http://example.com"), domain.Slug("short1")
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), original).Return(slug)
 		repo.EXPECT().GetURLMapping(gomock.Any(), slug).Return(nil, e.ErrTestGeneral)
@@ -75,8 +85,7 @@ func TestShortenURL(t *testing.T) {
 	})
 
 	t.Run("returns error if original URL already exists", func(t *testing.T) {
-		original := domain.OriginalURL("http://example.com")
-		slugDup := domain.Slug("slug2")
+		original, slugDup := domain.OriginalURL("http://example.com"), domain.Slug("slug2")
 		urlMapping := domain.NewURLMapping("slug1", original)
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), original).Return(slugDup).Times(1)

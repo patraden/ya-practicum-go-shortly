@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE SCHEMA IF NOT EXISTS shortener;
+CREATE SCHEMA shortener;
 -- +goose StatementEnd
 
 -- +goose Down

@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS shortener.urlmapping (
+CREATE TABLE shortener.urlmapping (
   slug        VARCHAR(8)    PRIMARY KEY,
   original    VARCHAR(2048) UNIQUE NOT NULL,
   created_at  TIMESTAMP     NOT NULL,
