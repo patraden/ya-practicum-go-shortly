@@ -93,9 +93,10 @@ func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.U
 	var res *domain.URLMapping
 
 	retriableQuery := func() error {
-		qm, err := repo.queries.AddURLMapping(ctx, q.AddURLMappingParams{
+		qmp, err := repo.queries.AddURLMapping(ctx, q.AddURLMappingParams{
 			Slug:      urlMap.Slug,
 			Original:  urlMap.OriginalURL,
+			UserID:    urlMap.UserID,
 			CreatedAt: urlMap.CreatedAt,
 			ExpiresAt: urlMap.ExpiresAt,
 		})
@@ -104,10 +105,11 @@ func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.U
 		}
 
 		res = &domain.URLMapping{
-			Slug:        qm.Slug,
-			OriginalURL: qm.Original,
-			CreatedAt:   qm.CreatedAt,
-			ExpiresAt:   qm.ExpiresAt,
+			Slug:        qmp.Slug,
+			OriginalURL: qmp.Original,
+			UserID:      qmp.UserID,
+			CreatedAt:   qmp.CreatedAt,
+			ExpiresAt:   qmp.ExpiresAt,
 		}
 
 		return nil
@@ -142,6 +144,7 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 		urlMap = &domain.URLMapping{
 			Slug:        qm.Slug,
 			OriginalURL: qm.Original,
+			UserID:      qm.UserID,
 			CreatedAt:   qm.CreatedAt,
 			ExpiresAt:   qm.ExpiresAt,
 		}
@@ -155,6 +158,42 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 	}
 
 	return urlMap, nil
+}
+
+func (repo *DBURLRepository) GetUserURLMappings(ctx context.Context, user domain.UserID) ([]domain.URLMapping, error) {
+	var results []domain.URLMapping
+
+	retriableQuery := func() error {
+		qresults, err := repo.queries.GetUserURLMappings(ctx, user)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return e.ErrUserNotFound
+		}
+
+		if err != nil {
+			return e.Wrap("failed to query", err, errLabel)
+		}
+
+		results = make([]domain.URLMapping, len(qresults))
+		for i, qm := range qresults {
+			results[i] = domain.URLMapping{
+				Slug:        qm.Slug,
+				OriginalURL: qm.Original,
+				UserID:      qm.UserID,
+				CreatedAt:   qm.CreatedAt,
+				ExpiresAt:   qm.ExpiresAt,
+			}
+		}
+
+		return nil
+	}
+
+	err := repo.WithRetry(ctx, retriableQuery)
+	if err != nil {
+		return []domain.URLMapping{}, e.Wrap("failed to get user urlmappings", err, errLabel)
+	}
+
+	return results, nil
 }
 
 func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error {
@@ -180,6 +219,7 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 			batchParams[i] = q.AddURLMappingBatchCopyParams{
 				Slug:      urlMapping.Slug,
 				Original:  urlMapping.OriginalURL,
+				UserID:    urlMapping.UserID,
 				CreatedAt: urlMapping.CreatedAt,
 				ExpiresAt: urlMapping.ExpiresAt,
 			}

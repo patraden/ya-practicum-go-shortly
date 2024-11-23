@@ -12,15 +12,17 @@ import (
 
 type InMemoryURLRepository struct {
 	sync.RWMutex
-	values dto.URLMappings
-	uIndex map[domain.OriginalURL]domain.Slug
+	values   dto.URLMappings
+	uIndex   map[domain.OriginalURL]domain.Slug
+	usrIndex map[domain.UserID][]domain.Slug
 }
 
 func NewInMemoryURLRepository() *InMemoryURLRepository {
 	return &InMemoryURLRepository{
-		RWMutex: sync.RWMutex{},
-		values:  make(dto.URLMappings),
-		uIndex:  make(map[domain.OriginalURL]domain.Slug),
+		RWMutex:  sync.RWMutex{},
+		values:   make(dto.URLMappings),
+		uIndex:   make(map[domain.OriginalURL]domain.Slug),
+		usrIndex: make(map[domain.UserID][]domain.Slug),
 	}
 }
 
@@ -44,6 +46,7 @@ func (ms *InMemoryURLRepository) AddURLMapping(
 
 	ms.values[urlMap.Slug] = *urlMap
 	ms.uIndex[urlMap.OriginalURL] = urlMap.Slug
+	ms.usrIndex[urlMap.UserID] = append(ms.usrIndex[urlMap.UserID], urlMap.Slug)
 
 	return urlMap, nil
 }
@@ -58,6 +61,25 @@ func (ms *InMemoryURLRepository) GetURLMapping(_ context.Context, slug domain.Sl
 	}
 
 	return &m, nil
+}
+
+func (ms *InMemoryURLRepository) GetUserURLMappings(
+	_ context.Context,
+	user domain.UserID,
+) ([]domain.URLMapping, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	if _, exists := ms.usrIndex[user]; !exists {
+		return nil, e.ErrUserNotFound
+	}
+
+	res := make([]domain.URLMapping, len(ms.usrIndex[user]))
+	for i, slug := range ms.usrIndex[user] {
+		res[i] = ms.values[slug]
+	}
+
+	return res, nil
 }
 
 func (ms *InMemoryURLRepository) AddURLMappingBatch(_ context.Context, batch *[]domain.URLMapping) error {
@@ -79,6 +101,7 @@ func (ms *InMemoryURLRepository) AddURLMappingBatch(_ context.Context, batch *[]
 	for _, m := range *batch {
 		ms.values[m.Slug] = m
 		ms.uIndex[m.OriginalURL] = m.Slug
+		ms.usrIndex[m.UserID] = append(ms.usrIndex[m.UserID], m.Slug)
 	}
 
 	return nil
@@ -105,10 +128,13 @@ func (ms *InMemoryURLRepository) RestoreMemento(m *memento.Memento) error {
 	cp := dto.URLMappingsCopy(m.GetState())
 	ms.values = cp
 
-	// Rebuild index to maintain consistency with values.
+	// Rebuild indexes to maintain consistency with values.
 	ms.uIndex = make(map[domain.OriginalURL]domain.Slug)
+	ms.usrIndex = make(map[domain.UserID][]domain.Slug)
+
 	for slug, mapping := range ms.values {
 		ms.uIndex[mapping.OriginalURL] = slug
+		ms.usrIndex[mapping.UserID] = append(ms.usrIndex[mapping.UserID], slug)
 	}
 
 	return nil

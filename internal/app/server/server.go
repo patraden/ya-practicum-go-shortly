@@ -34,7 +34,7 @@ func NewServer(
 	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	shandler := handler.NewShortenerHandler(srv, config, log)
 	phandler := handler.NewPingHandler(db, config, log)
-	router := handler.NewRouter(shandler, phandler, log)
+	router := handler.NewRouter(shandler, phandler, log, config)
 
 	return &Server{
 		Server: &http.Server{

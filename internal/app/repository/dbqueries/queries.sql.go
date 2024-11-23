@@ -13,18 +13,20 @@ import (
 )
 
 const AddURLMapping = `-- name: AddURLMapping :one
-INSERT INTO shortener.urlmapping (slug, original, created_at, expires_at)
-VALUES ($1, $2, $3, $4)
+INSERT INTO shortener.urlmapping (slug, original, user_id, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (original) DO UPDATE
 SET slug = shortener.urlmapping.slug,
+    user_id = shortener.urlmapping.user_id,
     created_at = shortener.urlmapping.created_at,
     expires_at = shortener.urlmapping.expires_at
-RETURNING slug, original, created_at, expires_at
+RETURNING slug, original, user_id, created_at, expires_at
 `
 
 type AddURLMappingParams struct {
 	Slug      domain.Slug        `db:"slug"`
 	Original  domain.OriginalURL `db:"original"`
+	UserID    domain.UserID      `db:"user_id"`
 	CreatedAt time.Time          `db:"created_at"`
 	ExpiresAt time.Time          `db:"expires_at"`
 }
@@ -33,6 +35,7 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (S
 	row := q.db.QueryRow(ctx, AddURLMapping,
 		arg.Slug,
 		arg.Original,
+		arg.UserID,
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
@@ -40,6 +43,7 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (S
 	err := row.Scan(
 		&i.Slug,
 		&i.Original,
+		&i.UserID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 	)
@@ -49,12 +53,13 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (S
 type AddURLMappingBatchCopyParams struct {
 	Slug      domain.Slug        `db:"slug"`
 	Original  domain.OriginalURL `db:"original"`
+	UserID    domain.UserID      `db:"user_id"`
 	CreatedAt time.Time          `db:"created_at"`
 	ExpiresAt time.Time          `db:"expires_at"`
 }
 
 const GetURLMapping = `-- name: GetURLMapping :one
-SELECT slug, original, created_at, expires_at
+SELECT slug, original, user_id, created_at, expires_at
 FROM shortener.urlmapping
 WHERE slug = $1
 `
@@ -65,8 +70,41 @@ func (q *Queries) GetURLMapping(ctx context.Context, slug domain.Slug) (Shortene
 	err := row.Scan(
 		&i.Slug,
 		&i.Original,
+		&i.UserID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const GetUserURLMappings = `-- name: GetUserURLMappings :many
+SELECT slug, original, user_id, created_at, expires_at
+FROM shortener.urlmapping
+WHERE user_id =$1
+`
+
+func (q *Queries) GetUserURLMappings(ctx context.Context, userID domain.UserID) ([]ShortenerUrlmapping, error) {
+	rows, err := q.db.Query(ctx, GetUserURLMappings, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ShortenerUrlmapping
+	for rows.Next() {
+		var i ShortenerUrlmapping
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Original,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -75,6 +75,8 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration12\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
 	@echo "Running increment13 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration13\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+	@echo "Running increment14 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration14\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
 
 
 .PHONY: goose-init

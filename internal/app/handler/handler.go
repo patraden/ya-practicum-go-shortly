@@ -59,6 +59,30 @@ func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+func (h *ShortenerHandler) HandleGetUserURLs(w http.ResponseWriter, r *http.Request) {
+	batch, err := h.service.GetUserURLs(r.Context())
+
+	if errors.Is(err, e.ErrShortenerInternal) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set(ContentType, ContentTypeJSON)
+
+	if errors.Is(err, e.ErrUserNotFound) {
+		w.WriteHeader(http.StatusNoContent)
+
+		return
+	}
+
+	if _, err = easyjson.MarshalToWriter(batch, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+}
+
 func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	originalURL := domain.OriginalURL(string(b))

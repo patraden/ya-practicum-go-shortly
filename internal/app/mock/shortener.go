@@ -58,6 +58,21 @@ func (mr *MockURLShortenerMockRecorder) GetOriginalURL(ctx, slug any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockURLShortener)(nil).GetOriginalURL), ctx, slug)
 }
 
+// GetUserURLs mocks base method.
+func (m *MockURLShortener) GetUserURLs(ctx context.Context) (*dto.URLPairBatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserURLs", ctx)
+	ret0, _ := ret[0].(*dto.URLPairBatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserURLs indicates an expected call of GetUserURLs.
+func (mr *MockURLShortenerMockRecorder) GetUserURLs(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserURLs", reflect.TypeOf((*MockURLShortener)(nil).GetUserURLs), ctx)
+}
+
 // ShortenURL mocks base method.
 func (m *MockURLShortener) ShortenURL(ctx context.Context, original domain.OriginalURL) (domain.Slug, error) {
 	m.ctrl.T.Helper()

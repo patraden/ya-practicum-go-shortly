@@ -41,6 +41,12 @@ func easyjson57a14e87DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 			out.Slug = Slug(in.String())
 		case "original_url":
 			out.OriginalURL = OriginalURL(in.String())
+		case "user_id":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				copy(out.UserID[:], in.Bytes())
+			}
 		case "created_at":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.CreatedAt).UnmarshalJSON(data))
@@ -72,6 +78,11 @@ func easyjson57a14e87EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 		const prefix string = ",\"original_url\":"
 		out.RawString(prefix)
 		out.String(string(in.OriginalURL))
+	}
+	{
+		const prefix string = ",\"user_id\":"
+		out.RawString(prefix)
+		out.Base64Bytes(in.UserID[:])
 	}
 	{
 		const prefix string = ",\"created_at\":"

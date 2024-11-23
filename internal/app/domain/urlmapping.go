@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-const defaultExpiration = time.Hour * 24 * 730 // 2 years
+const (
+	defaultExpiration = time.Hour * 24 * 730 // 2 years
+	errLabel          = "domain"
+)
 
 type (
 	Slug        string
@@ -44,6 +47,7 @@ func (u OriginalURL) IsValid() bool {
 type URLMapping struct {
 	Slug        Slug        `json:"short_url"`
 	OriginalURL OriginalURL `json:"original_url"`
+	UserID      UserID      `json:"user_id"`
 	CreatedAt   time.Time   `json:"created_at"`
 	ExpiresAt   time.Time   `json:"expires_at"`
 }
@@ -52,10 +56,11 @@ func (m *URLMapping) ExpiresAfter(duration time.Duration) {
 	m.ExpiresAt = m.CreatedAt.Add(duration)
 }
 
-func NewURLMapping(slug Slug, original OriginalURL) *URLMapping {
+func NewURLMapping(slug Slug, original OriginalURL, userID UserID) *URLMapping {
 	m := &URLMapping{
 		Slug:        slug,
 		OriginalURL: original,
+		UserID:      userID,
 		CreatedAt:   time.Now(),
 	}
 
