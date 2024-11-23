@@ -85,3 +85,18 @@ func (mr *MockURLRepositoryMockRecorder) GetURLMapping(ctx, slug any) *gomock.Ca
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLMapping", reflect.TypeOf((*MockURLRepository)(nil).GetURLMapping), ctx, slug)
 }
+
+// GetUserURLMappings mocks base method.
+func (m *MockURLRepository) GetUserURLMappings(ctx context.Context, user domain.UserID) ([]domain.URLMapping, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserURLMappings", ctx, user)
+	ret0, _ := ret[0].([]domain.URLMapping)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserURLMappings indicates an expected call of GetUserURLMappings.
+func (mr *MockURLRepositoryMockRecorder) GetUserURLMappings(ctx, user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserURLMappings", reflect.TypeOf((*MockURLRepository)(nil).GetUserURLMappings), ctx, user)
+}

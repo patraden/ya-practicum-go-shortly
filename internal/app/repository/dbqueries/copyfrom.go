@@ -31,6 +31,7 @@ func (r iteratorForAddURLMappingBatchCopy) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0].Slug,
 		r.rows[0].Original,
+		r.rows[0].UserID,
 		r.rows[0].CreatedAt,
 		r.rows[0].ExpiresAt,
 	}, nil
@@ -41,5 +42,5 @@ func (r iteratorForAddURLMappingBatchCopy) Err() error {
 }
 
 func (q *Queries) AddURLMappingBatchCopy(ctx context.Context, arg []AddURLMappingBatchCopyParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"shortener", "urlmapping"}, []string{"slug", "original", "created_at", "expires_at"}, &iteratorForAddURLMappingBatchCopy{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"shortener", "urlmapping"}, []string{"slug", "original", "user_id", "created_at", "expires_at"}, &iteratorForAddURLMappingBatchCopy{rows: arg})
 }

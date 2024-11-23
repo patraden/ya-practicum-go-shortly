@@ -19,6 +19,7 @@ type Config struct {
 	BaseURL                 string `env:"BASE_URL"`
 	FileStoragePath         string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN             string `env:"DATABASE_DSN"`
+	JWTSecret               string `env:"JWT_SECRET"`
 	URLGenTimeout           time.Duration
 	URLGenRetryInterval     time.Duration
 	URLsize                 int
@@ -35,6 +36,7 @@ func DefaultConfig() *Config {
 		BaseURL:                 `http://localhost:8080/`,
 		FileStoragePath:         `data/service_storage.json`,
 		DatabaseDSN:             ``,
+		JWTSecret:               `d1a58c288a0226998149277b14993f6c73cf44ff9df3de548df4df25a13b251a`,
 		URLGenTimeout:           defaultURLGenTimeout,
 		URLGenRetryInterval:     defaultURLGenRetryInterval,
 		URLsize:                 defaultURLSize,

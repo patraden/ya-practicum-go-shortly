@@ -1,5 +1,6 @@
 POST /
 Content-Type: text/plain
 Host: localhost:8080
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmQ4M2FlNTgtMGZlNS00MDFhLWE2MDEtMmM4YTVmNjA2OGY3IiwiZXhwIjoxNzYzOTAzNTMyLCJpYXQiOjE3MzIzNjc1MzJ9.diby-lzcmz-blyRNWSMh3-uOKjxncIIsZhSgQTlTICE
 
-https://me.com/
+https://google.ru/

@@ -23,6 +23,11 @@ sql:
               import: "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
               package: "domain"
               type: "OriginalURL"
+          - column: "shortener.urlmapping.user_id"
+            go_type: 
+              import: "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+              package: "domain"
+              type: "UserID"
           - column: "shortener.urlmapping.created_at"
             go_type:
               import: "time"

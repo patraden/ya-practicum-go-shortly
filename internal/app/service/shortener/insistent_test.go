@@ -14,6 +14,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 )
@@ -40,13 +41,14 @@ func setupShortenURLTest(t *testing.T) (
 func TestShortenURL(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	userID := domain.NewUserID()
+	ctx := context.WithValue(context.Background(), middleware.UserIDKey, userID)
 
 	ctrl, svc, repo, urlGen, config := setupShortenURLTest(t)
 	defer ctrl.Finish()
 
 	t.Run("successfully shortens a URL", func(t *testing.T) {
-		urlMapping := domain.NewURLMapping("slug1", "http://example.com")
+		urlMapping := domain.NewURLMapping("slug1", "http://example.com", userID)
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), urlMapping.OriginalURL).Return(urlMapping.Slug).Times(1)
 		repo.EXPECT().GetURLMapping(gomock.Any(), urlMapping.Slug).Return(nil, e.ErrSlugNotFound)
@@ -59,7 +61,7 @@ func TestShortenURL(t *testing.T) {
 
 	t.Run("returns error on slug collision", func(t *testing.T) {
 		original, slug := domain.OriginalURL("http://example.com"), domain.Slug("slug1")
-		urlMapping := domain.NewURLMapping("slug1", "http://example.com")
+		urlMapping := domain.NewURLMapping("slug1", "http://example.com", userID)
 		calls := int(config.URLGenTimeout / config.URLGenRetryInterval)
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), original).Return(slug).Times(calls)
@@ -86,7 +88,7 @@ func TestShortenURL(t *testing.T) {
 
 	t.Run("returns error if original URL already exists", func(t *testing.T) {
 		original, slugDup := domain.OriginalURL("http://example.com"), domain.Slug("slug2")
-		urlMapping := domain.NewURLMapping("slug1", original)
+		urlMapping := domain.NewURLMapping("slug1", original, userID)
 
 		urlGen.EXPECT().GenerateSlug(gomock.Any(), original).Return(slugDup).Times(1)
 		repo.EXPECT().GetURLMapping(gomock.Any(), slugDup).Return(nil, e.ErrSlugNotFound).Times(1)
@@ -109,12 +111,13 @@ func TestGetOriginalURL(t *testing.T) {
 	config := config.DefaultConfig()
 	log := zerolog.New(nil)
 	svc := shortener.NewInsistentShortener(repo, urlGen, config, &log)
-	ctx := context.Background()
+	userID := domain.NewUserID()
+	ctx := context.WithValue(context.Background(), middleware.UserIDKey, userID)
 
 	t.Run("successfully retrieves original URL", func(t *testing.T) {
 		slug := domain.Slug("short1")
 		original := domain.OriginalURL("http://example.com")
-		urlMapping := domain.NewURLMapping("short1", "http://example.com")
+		urlMapping := domain.NewURLMapping("short1", "http://example.com", userID)
 
 		urlGen.EXPECT().IsValidSlug(slug).Return(true)
 		repo.EXPECT().GetURLMapping(gomock.Any(), slug).Return(urlMapping, nil)
@@ -158,7 +161,8 @@ func TestShortenURLBatch(t *testing.T) {
 	config := config.DefaultConfig()
 	log := zerolog.New(nil)
 	svc := shortener.NewInsistentShortener(repo, urlGen, config, &log)
-	ctx := context.Background()
+	userID := domain.NewUserID()
+	ctx := context.WithValue(context.Background(), middleware.UserIDKey, userID)
 
 	t.Run("successfully shortens a batch of URLs", func(t *testing.T) {
 		originals := dto.OriginalURLBatch{
@@ -204,7 +208,50 @@ func TestShortenURLBatch(t *testing.T) {
 		urlGen.EXPECT().GenerateSlugs(gomock.Any(), orig.Originals()).Return(slugs, nil)
 		repo.EXPECT().AddURLMappingBatch(gomock.Any(), gomock.Any()).Return(e.ErrTestGeneral)
 
-		_, err := svc.ShortenURLBatch(context.Background(), &orig)
+		_, err := svc.ShortenURLBatch(ctx, &orig)
 		require.ErrorIs(t, err, e.ErrShortenerInternal)
+	})
+}
+
+func TestGetUserURLs(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := mock.NewMockURLRepository(ctrl)
+	urlGen := mock.NewMockURLGenerator(ctrl)
+	config := config.DefaultConfig()
+	log := zerolog.New(nil)
+	svc := shortener.NewInsistentShortener(repo, urlGen, config, &log)
+	userID := domain.NewUserID()
+	ctx := context.WithValue(context.Background(), middleware.UserIDKey, userID)
+
+	t.Run("successfully retrieves user URLs", func(t *testing.T) {
+		urlMappings := []domain.URLMapping{
+			*domain.NewURLMapping("slug1", "http://example1.com", userID),
+			*domain.NewURLMapping("slug2", "http://example2.com", userID),
+		}
+
+		repo.EXPECT().GetUserURLMappings(ctx, userID).Return(urlMappings, nil)
+
+		_, err := svc.GetUserURLs(ctx)
+		require.NoError(t, err)
+	})
+
+	t.Run("returns error if user not found", func(t *testing.T) {
+		repo.EXPECT().GetUserURLMappings(ctx, userID).Return(nil, e.ErrUserNotFound)
+
+		result, err := svc.GetUserURLs(ctx)
+		require.ErrorIs(t, err, e.ErrUserNotFound)
+		assert.Empty(t, result)
+	})
+
+	t.Run("returns internal error on unexpected repository failure", func(t *testing.T) {
+		repo.EXPECT().GetUserURLMappings(ctx, userID).Return(nil, e.ErrTestGeneral)
+
+		result, err := svc.GetUserURLs(ctx)
+		require.ErrorIs(t, err, e.ErrShortenerInternal)
+		assert.Empty(t, result)
 	})
 }
