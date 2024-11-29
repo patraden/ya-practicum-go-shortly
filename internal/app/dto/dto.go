@@ -31,6 +31,11 @@ type CorrelatedSlug struct {
 	Slug          domain.Slug `json:"short_url"`
 }
 
+type UserSlug struct {
+	Slug   domain.Slug
+	UserID domain.UserID
+}
+
 //easyjson:json
 type OriginalURLBatch []CorrelatedOriginalURL
 
@@ -45,6 +50,9 @@ func (b OriginalURLBatch) Originals() []domain.OriginalURL {
 
 //easyjson:json
 type SlugBatch []CorrelatedSlug
+
+//easyjson:json
+type UserSlugBatch []domain.Slug
 
 //easyjson:json
 type URLPairBatch []URLPair

@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 )
 
@@ -178,4 +180,43 @@ func TestMemGetUserURLMappings(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDelUserURLMappings(t *testing.T) {
+	t.Parallel()
+
+	repo := repository.NewInMemoryURLRepository()
+	userID := domain.NewUserID()
+	otherUserID := domain.NewUserID()
+	ctx := context.Background()
+
+	_, err := repo.AddURLMapping(ctx, domain.NewURLMapping("slug1", "url1", userID))
+	require.NoError(t, err)
+
+	_, err = repo.AddURLMapping(ctx, domain.NewURLMapping("slug2", "url2", userID))
+	require.NoError(t, err)
+
+	_, err = repo.AddURLMapping(ctx, domain.NewURLMapping("slug3", "url3", otherUserID))
+	require.NoError(t, err)
+
+	tasks := []dto.UserSlug{
+		{Slug: "slug1", UserID: userID},
+		{Slug: "slug2", UserID: userID},
+		{Slug: "slug4", UserID: otherUserID},
+	}
+
+	err = repo.DelUserURLMappings(ctx, &tasks)
+	require.NoError(t, err)
+
+	m1, err := repo.GetURLMapping(ctx, "slug1")
+	require.NoError(t, err)
+	assert.True(t, m1.Deleted)
+
+	m2, err := repo.GetURLMapping(ctx, "slug2")
+	require.NoError(t, err)
+	assert.True(t, m2.Deleted)
+
+	m3, err := repo.GetURLMapping(ctx, "slug3")
+	require.NoError(t, err)
+	assert.False(t, m3.Deleted)
 }

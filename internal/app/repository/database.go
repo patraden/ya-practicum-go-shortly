@@ -14,6 +14,7 @@ import (
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	q "github.com/patraden/ya-practicum-go-shortly/internal/app/repository/dbqueries"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
@@ -99,6 +100,7 @@ func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.U
 			UserID:    urlMap.UserID,
 			CreatedAt: urlMap.CreatedAt,
 			ExpiresAt: urlMap.ExpiresAt,
+			Deleted:   urlMap.Deleted,
 		})
 		if err != nil {
 			return e.Wrap("failed to query", err, errLabel)
@@ -110,6 +112,7 @@ func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.U
 			UserID:      qmp.UserID,
 			CreatedAt:   qmp.CreatedAt,
 			ExpiresAt:   qmp.ExpiresAt,
+			Deleted:     qmp.Deleted,
 		}
 
 		return nil
@@ -131,7 +134,7 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 	var urlMap *domain.URLMapping
 
 	retriableQuery := func() error {
-		qm, err := repo.queries.GetURLMapping(ctx, slug)
+		qmr, err := repo.queries.GetURLMapping(ctx, slug)
 
 		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrSlugNotFound
@@ -142,11 +145,12 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 		}
 
 		urlMap = &domain.URLMapping{
-			Slug:        qm.Slug,
-			OriginalURL: qm.Original,
-			UserID:      qm.UserID,
-			CreatedAt:   qm.CreatedAt,
-			ExpiresAt:   qm.ExpiresAt,
+			Slug:        qmr.Slug,
+			OriginalURL: qmr.Original,
+			UserID:      qmr.UserID,
+			CreatedAt:   qmr.CreatedAt,
+			ExpiresAt:   qmr.ExpiresAt,
+			Deleted:     qmr.Deleted,
 		}
 
 		return nil
@@ -182,6 +186,7 @@ func (repo *DBURLRepository) GetUserURLMappings(ctx context.Context, user domain
 				UserID:      qm.UserID,
 				CreatedAt:   qm.CreatedAt,
 				ExpiresAt:   qm.ExpiresAt,
+				Deleted:     qm.Deleted,
 			}
 		}
 
@@ -222,6 +227,7 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 				UserID:    urlMapping.UserID,
 				CreatedAt: urlMapping.CreatedAt,
 				ExpiresAt: urlMapping.ExpiresAt,
+				Deleted:   urlMapping.Deleted,
 			}
 		}
 
@@ -250,6 +256,67 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 	err := repo.WithRetry(ctx, retriableQuery)
 	if err != nil {
 		return e.Wrap("failed to add urlmapping:", err, errLabel)
+	}
+
+	return nil
+}
+
+func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks *[]dto.UserSlug) error {
+	var err error
+	var rowsAffected int64
+
+	retriableQuery := func() error {
+		trx, beginErr := repo.connPool.BeginTx(ctx, pgx.TxOptions{})
+		if beginErr != nil {
+			return e.Wrap("failed to start batch tx", beginErr, errLabel)
+		}
+
+		defer func() {
+			if err != nil {
+				repo.log.Error().Err(err).
+					Msg("rollback batch tx")
+
+				if rollbackErr := trx.Rollback(ctx); rollbackErr != nil {
+					repo.log.Error().Err(rollbackErr).
+						Msg("failed to rollback batch tx")
+				}
+			}
+		}()
+
+		txQueries := repo.queries.WithTx(trx)
+		deleteSlugParams := make([]q.FillDeletedSlugTempTableParams, len(*tasks))
+
+		for i, task := range *tasks {
+			deleteSlugParams[i] = q.FillDeletedSlugTempTableParams{
+				Slug:   task.Slug,
+				UserID: task.UserID,
+			}
+		}
+
+		if err = txQueries.CreateDeletedSlugTempTable(ctx); err != nil {
+			return e.Wrap("error creating temp table", err, errLabel)
+		}
+
+		if rowsAffected, err = txQueries.FillDeletedSlugTempTable(ctx, deleteSlugParams); err != nil {
+			return e.Wrap("error filling temp table", err, errLabel)
+		}
+
+		if err = txQueries.DeleteSlugsInTarget(ctx); err != nil {
+			return e.Wrap("error deleting slugs in target", err, errLabel)
+		}
+
+		if err = trx.Commit(ctx); err != nil {
+			return e.Wrap("failed to commit batch tx", err, errLabel)
+		}
+
+		repo.log.Info().Int64("rows_affected", rowsAffected).
+			Msg("url mappings deleted in batch tx")
+
+		return nil
+	}
+
+	if err = repo.WithRetry(ctx, retriableQuery); err != nil {
+		return e.Wrap("failed to delete user URL mappings", err, errLabel)
 	}
 
 	return nil

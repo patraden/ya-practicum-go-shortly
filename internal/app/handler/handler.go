@@ -49,6 +49,10 @@ func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 		return
+	case errors.Is(err, e.ErrSlugDeleted):
+		http.Error(w, err.Error(), http.StatusGone)
+
+		return
 	case errors.Is(err, e.ErrShortenerInternal) || err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 

@@ -13,6 +13,7 @@ import (
 func NewRouter(
 	shandler *ShortenerHandler,
 	phandler *PingHandler,
+	dhandler *DeleteHandler,
 	log *zerolog.Logger,
 	config *config.Config,
 ) http.Handler {
@@ -32,6 +33,7 @@ func NewRouter(
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.Authorize(log, config))
 		r.Get("/api/user/urls", shandler.HandleGetUserURLs)
+		r.Delete("/api/user/urls", dhandler.HandleDelUserURLs)
 	})
 
 	// Routes with authentication

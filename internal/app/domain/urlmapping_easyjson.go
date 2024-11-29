@@ -55,6 +55,8 @@ func easyjson57a14e87DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.ExpiresAt).UnmarshalJSON(data))
 			}
+		case "is_deleted":
+			out.Deleted = bool(in.Bool())
 		default:
 			in.SkipRecursive()
 		}
@@ -93,6 +95,11 @@ func easyjson57a14e87EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 		const prefix string = ",\"expires_at\":"
 		out.RawString(prefix)
 		out.Raw((in.ExpiresAt).MarshalJSON())
+	}
+	{
+		const prefix string = ",\"is_deleted\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.Deleted))
 	}
 	out.RawByte('}')
 }

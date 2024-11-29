@@ -13,14 +13,15 @@ import (
 )
 
 const AddURLMapping = `-- name: AddURLMapping :one
-INSERT INTO shortener.urlmapping (slug, original, user_id, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO shortener.urlmapping (slug, original, user_id, created_at, expires_at, deleted)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (original) DO UPDATE
 SET slug = shortener.urlmapping.slug,
     user_id = shortener.urlmapping.user_id,
     created_at = shortener.urlmapping.created_at,
-    expires_at = shortener.urlmapping.expires_at
-RETURNING slug, original, user_id, created_at, expires_at
+    expires_at = shortener.urlmapping.expires_at,
+    deleted = shortener.urlmapping.deleted
+RETURNING slug, original, user_id, created_at, expires_at, deleted
 `
 
 type AddURLMappingParams struct {
@@ -29,6 +30,7 @@ type AddURLMappingParams struct {
 	UserID    domain.UserID      `db:"user_id"`
 	CreatedAt time.Time          `db:"created_at"`
 	ExpiresAt time.Time          `db:"expires_at"`
+	Deleted   bool               `db:"deleted"`
 }
 
 func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (ShortenerUrlmapping, error) {
@@ -38,6 +40,7 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (S
 		arg.UserID,
 		arg.CreatedAt,
 		arg.ExpiresAt,
+		arg.Deleted,
 	)
 	var i ShortenerUrlmapping
 	err := row.Scan(
@@ -46,6 +49,7 @@ func (q *Queries) AddURLMapping(ctx context.Context, arg AddURLMappingParams) (S
 		&i.UserID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.Deleted,
 	)
 	return i, err
 }
@@ -56,10 +60,41 @@ type AddURLMappingBatchCopyParams struct {
 	UserID    domain.UserID      `db:"user_id"`
 	CreatedAt time.Time          `db:"created_at"`
 	ExpiresAt time.Time          `db:"expires_at"`
+	Deleted   bool               `db:"deleted"`
+}
+
+const CreateDeletedSlugTempTable = `-- name: CreateDeletedSlugTempTable :exec
+CREATE TEMP TABLE urlmapping_tmp (
+    slug    VARCHAR(8)  PRIMARY KEY,
+    user_id UUID        NOT NULL
+) ON COMMIT DROP
+`
+
+func (q *Queries) CreateDeletedSlugTempTable(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, CreateDeletedSlugTempTable)
+	return err
+}
+
+const DeleteSlugsInTarget = `-- name: DeleteSlugsInTarget :exec
+UPDATE shortener.urlmapping
+SET deleted = true
+FROM urlmapping_tmp
+WHERE shortener.urlmapping.slug = urlmapping_tmp.slug
+  AND shortener.urlmapping.user_id = urlmapping_tmp.user_id
+`
+
+func (q *Queries) DeleteSlugsInTarget(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, DeleteSlugsInTarget)
+	return err
+}
+
+type FillDeletedSlugTempTableParams struct {
+	Slug   domain.Slug   `db:"slug"`
+	UserID domain.UserID `db:"user_id"`
 }
 
 const GetURLMapping = `-- name: GetURLMapping :one
-SELECT slug, original, user_id, created_at, expires_at
+SELECT slug, original, user_id, created_at, expires_at, deleted
 FROM shortener.urlmapping
 WHERE slug = $1
 `
@@ -73,12 +108,13 @@ func (q *Queries) GetURLMapping(ctx context.Context, slug domain.Slug) (Shortene
 		&i.UserID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.Deleted,
 	)
 	return i, err
 }
 
 const GetUserURLMappings = `-- name: GetUserURLMappings :many
-SELECT slug, original, user_id, created_at, expires_at
+SELECT slug, original, user_id, created_at, expires_at, deleted
 FROM shortener.urlmapping
 WHERE user_id =$1
 `
@@ -98,6 +134,7 @@ func (q *Queries) GetUserURLMappings(ctx context.Context, userID domain.UserID) 
 			&i.UserID,
 			&i.CreatedAt,
 			&i.ExpiresAt,
+			&i.Deleted,
 		); err != nil {
 			return nil, err
 		}

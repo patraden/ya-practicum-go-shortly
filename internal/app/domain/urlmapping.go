@@ -50,6 +50,7 @@ type URLMapping struct {
 	UserID      UserID      `json:"user_id"`
 	CreatedAt   time.Time   `json:"created_at"`
 	ExpiresAt   time.Time   `json:"expires_at"`
+	Deleted     bool        `json:"is_deleted"`
 }
 
 func (m *URLMapping) ExpiresAfter(duration time.Duration) {
@@ -62,6 +63,7 @@ func NewURLMapping(slug Slug, original OriginalURL, userID UserID) *URLMapping {
 		OriginalURL: original,
 		UserID:      userID,
 		CreatedAt:   time.Now(),
+		Deleted:     false,
 	}
 
 	m.ExpiresAfter(defaultExpiration)

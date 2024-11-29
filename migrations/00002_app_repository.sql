@@ -5,7 +5,8 @@ CREATE TABLE shortener.urlmapping (
   original    VARCHAR(2048) UNIQUE NOT NULL,
   user_id     UUID          NULL,
   created_at  TIMESTAMP     NOT NULL,
-  expires_at  TIMESTAMP     NULL
+  expires_at  TIMESTAMP     NULL,
+  deleted     boolean       NOT NULL
 );
 CREATE INDEX idx_user_id ON shortener.urlmapping (user_id);
 -- +goose StatementEnd

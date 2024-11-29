@@ -123,7 +123,7 @@ func (s *InsistentShortener) GetOriginalURL(ctx context.Context, slug domain.Slu
 		return "", e.ErrSlugInvalid
 	}
 
-	m, err := s.repo.GetURLMapping(ctx, slug)
+	urlm, err := s.repo.GetURLMapping(ctx, slug)
 
 	if errors.Is(err, e.ErrSlugNotFound) {
 		return "", e.ErrSlugNotFound
@@ -135,7 +135,11 @@ func (s *InsistentShortener) GetOriginalURL(ctx context.Context, slug domain.Slu
 		return "", e.ErrShortenerInternal
 	}
 
-	return m.OriginalURL, nil
+	if urlm.Deleted {
+		return urlm.OriginalURL, e.ErrSlugDeleted
+	}
+
+	return urlm.OriginalURL, nil
 }
 
 func (s *InsistentShortener) GetUserURLs(ctx context.Context) (*dto.URLPairBatch, error) {

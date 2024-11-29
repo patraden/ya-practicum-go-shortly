@@ -12,6 +12,7 @@ const (
 	defaultWriteTimeout        = 10 * time.Second  // Maximum duration to write response
 	defaultIdleTimeout         = 120 * time.Second // Maximum duration for idle connections
 	defaultURLSize             = 8
+	defaultBatchingInterval    = 100 * time.Millisecond
 )
 
 type Config struct {
@@ -27,6 +28,7 @@ type Config struct {
 	ServerReadHeaderTimeout time.Duration
 	ServerWriteTimeout      time.Duration
 	ServerIdleTimeout       time.Duration
+	DeleteBatchInterval     time.Duration
 	ForceEmptyRepo          bool
 }
 
@@ -44,6 +46,7 @@ func DefaultConfig() *Config {
 		ServerReadHeaderTimeout: defaultReadHeaderTimeout,
 		ServerWriteTimeout:      defaultWriteTimeout,
 		ServerIdleTimeout:       defaultIdleTimeout,
+		DeleteBatchInterval:     defaultBatchingInterval,
 		ForceEmptyRepo:          false,
 	}
 }

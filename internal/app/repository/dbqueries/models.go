@@ -16,4 +16,10 @@ type ShortenerUrlmapping struct {
 	UserID    domain.UserID      `db:"user_id"`
 	CreatedAt time.Time          `db:"created_at"`
 	ExpiresAt time.Time          `db:"expires_at"`
+	Deleted   bool               `db:"deleted"`
+}
+
+type UrlmappingTmp struct {
+	Slug   domain.Slug   `db:"slug"`
+	UserID domain.UserID `db:"user_id"`
 }

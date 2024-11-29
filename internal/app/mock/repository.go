@@ -16,6 +16,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 )
 
 // MockURLRepository is a mock of URLRepository interface.
@@ -69,6 +70,20 @@ func (m *MockURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]dom
 func (mr *MockURLRepositoryMockRecorder) AddURLMappingBatch(ctx, batch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMappingBatch", reflect.TypeOf((*MockURLRepository)(nil).AddURLMappingBatch), ctx, batch)
+}
+
+// DelUserURLMappings mocks base method.
+func (m *MockURLRepository) DelUserURLMappings(ctx context.Context, tasks *[]dto.UserSlug) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DelUserURLMappings", ctx, tasks)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DelUserURLMappings indicates an expected call of DelUserURLMappings.
+func (mr *MockURLRepositoryMockRecorder) DelUserURLMappings(ctx, tasks any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelUserURLMappings", reflect.TypeOf((*MockURLRepository)(nil).DelUserURLMappings), ctx, tasks)
 }
 
 // GetURLMapping mocks base method.

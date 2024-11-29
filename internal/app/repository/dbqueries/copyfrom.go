@@ -34,6 +34,7 @@ func (r iteratorForAddURLMappingBatchCopy) Values() ([]interface{}, error) {
 		r.rows[0].UserID,
 		r.rows[0].CreatedAt,
 		r.rows[0].ExpiresAt,
+		r.rows[0].Deleted,
 	}, nil
 }
 
@@ -42,5 +43,38 @@ func (r iteratorForAddURLMappingBatchCopy) Err() error {
 }
 
 func (q *Queries) AddURLMappingBatchCopy(ctx context.Context, arg []AddURLMappingBatchCopyParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"shortener", "urlmapping"}, []string{"slug", "original", "user_id", "created_at", "expires_at"}, &iteratorForAddURLMappingBatchCopy{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"shortener", "urlmapping"}, []string{"slug", "original", "user_id", "created_at", "expires_at", "deleted"}, &iteratorForAddURLMappingBatchCopy{rows: arg})
+}
+
+// iteratorForFillDeletedSlugTempTable implements pgx.CopyFromSource.
+type iteratorForFillDeletedSlugTempTable struct {
+	rows                 []FillDeletedSlugTempTableParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForFillDeletedSlugTempTable) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForFillDeletedSlugTempTable) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].Slug,
+		r.rows[0].UserID,
+	}, nil
+}
+
+func (r iteratorForFillDeletedSlugTempTable) Err() error {
+	return nil
+}
+
+func (q *Queries) FillDeletedSlugTempTable(ctx context.Context, arg []FillDeletedSlugTempTableParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"urlmapping_tmp"}, []string{"slug", "user_id"}, &iteratorForFillDeletedSlugTempTable{rows: arg})
 }

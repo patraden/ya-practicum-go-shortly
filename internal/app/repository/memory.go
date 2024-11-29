@@ -139,3 +139,27 @@ func (ms *InMemoryURLRepository) RestoreMemento(m *memento.Memento) error {
 
 	return nil
 }
+
+func (ms *InMemoryURLRepository) DelUserURLMappings(_ context.Context, tasks *[]dto.UserSlug) error {
+	updateTasks := make([]dto.UserSlug, 0, len(*tasks))
+
+	ms.RLock()
+	for _, task := range *tasks {
+		val, ok := ms.values[task.Slug]
+		if ok && val.UserID == task.UserID {
+			updateTasks = append(updateTasks, task)
+		}
+	}
+	ms.RUnlock()
+
+	ms.Lock()
+
+	for _, task := range updateTasks {
+		val := ms.values[task.Slug]
+		val.Deleted = true
+		ms.values[task.Slug] = val
+	}
+	ms.Unlock()
+
+	return nil
+}
