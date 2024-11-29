@@ -20,11 +20,12 @@ func TestFileReadWrite(t *testing.T) {
 
 	originator := repository.NewInMemoryURLRepository()
 
+	userID := domain.NewUserID()
 	testMemento := memento.NewMemento(
 		dto.URLMappings{
-			"XXXYZZZZ": *domain.NewURLMapping("XXXYZZZZ", "http://ya.com"),
-			"XXXYYZZZ": *domain.NewURLMapping("XXXYYZZZ", "http://ya.com"),
-			"XXXYYYZZ": *domain.NewURLMapping("XXXYYYZZ", "http://ya.com"),
+			"XXXYZZZZ": *domain.NewURLMapping("XXXYZZZZ", "http://ya.com", userID),
+			"XXXYYZZZ": *domain.NewURLMapping("XXXYYZZZ", "http://ya.com", domain.NewUserID()),
+			"XXXYYYZZ": *domain.NewURLMapping("XXXYYYZZ", "http://ya.com", domain.NewUserID()),
 		},
 	)
 

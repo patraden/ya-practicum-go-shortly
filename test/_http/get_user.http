@@ -1,0 +1,4 @@
+GET /api/user/urls HTTP/1.1
+Host: localhost:8080
+Content-Type: text/plain
+Cookie: auth_token=.eyJ1c2VyX2lkIjoiMmQ4M2FlNTgtMGZlNS00MDFhLWE2MDEtMmM4YTVmNjA2OGY3IiwiZXhwIjoxNzYzOTAzNTMyLCJpYXQiOjE3MzIzNjc1MzJ9.diby-lzcmz-blyRNWSMh3-uOKjxncIIsZhSgQTlTICE

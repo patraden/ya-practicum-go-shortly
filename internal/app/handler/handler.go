@@ -49,6 +49,10 @@ func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 		return
+	case errors.Is(err, e.ErrSlugDeleted):
+		http.Error(w, err.Error(), http.StatusGone)
+
+		return
 	case errors.Is(err, e.ErrShortenerInternal) || err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
@@ -57,6 +61,30 @@ func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.R
 
 	w.Header().Add("Location", original.String())
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *ShortenerHandler) HandleGetUserURLs(w http.ResponseWriter, r *http.Request) {
+	batch, err := h.service.GetUserURLs(r.Context())
+
+	if errors.Is(err, e.ErrShortenerInternal) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set(ContentType, ContentTypeJSON)
+
+	if errors.Is(err, e.ErrUserNotFound) {
+		w.WriteHeader(http.StatusNoContent)
+
+		return
+	}
+
+	if _, err = easyjson.MarshalToWriter(batch, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
 }
 
 func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Request) {

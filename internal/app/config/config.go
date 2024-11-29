@@ -12,6 +12,7 @@ const (
 	defaultWriteTimeout        = 10 * time.Second  // Maximum duration to write response
 	defaultIdleTimeout         = 120 * time.Second // Maximum duration for idle connections
 	defaultURLSize             = 8
+	defaultBatchingInterval    = 100 * time.Millisecond
 )
 
 type Config struct {
@@ -19,6 +20,7 @@ type Config struct {
 	BaseURL                 string `env:"BASE_URL"`
 	FileStoragePath         string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN             string `env:"DATABASE_DSN"`
+	JWTSecret               string `env:"JWT_SECRET"`
 	URLGenTimeout           time.Duration
 	URLGenRetryInterval     time.Duration
 	URLsize                 int
@@ -26,6 +28,7 @@ type Config struct {
 	ServerReadHeaderTimeout time.Duration
 	ServerWriteTimeout      time.Duration
 	ServerIdleTimeout       time.Duration
+	DeleteBatchInterval     time.Duration
 	ForceEmptyRepo          bool
 }
 
@@ -35,6 +38,7 @@ func DefaultConfig() *Config {
 		BaseURL:                 `http://localhost:8080/`,
 		FileStoragePath:         `data/service_storage.json`,
 		DatabaseDSN:             ``,
+		JWTSecret:               `d1a58c288a0226998149277b14993f6c73cf44ff9df3de548df4df25a13b251a`,
 		URLGenTimeout:           defaultURLGenTimeout,
 		URLGenRetryInterval:     defaultURLGenRetryInterval,
 		URLsize:                 defaultURLSize,
@@ -42,6 +46,7 @@ func DefaultConfig() *Config {
 		ServerReadHeaderTimeout: defaultReadHeaderTimeout,
 		ServerWriteTimeout:      defaultWriteTimeout,
 		ServerIdleTimeout:       defaultIdleTimeout,
+		DeleteBatchInterval:     defaultBatchingInterval,
 		ForceEmptyRepo:          false,
 	}
 }

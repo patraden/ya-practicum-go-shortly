@@ -12,6 +12,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
@@ -19,9 +20,10 @@ import (
 
 type Server struct {
 	*http.Server
-	config *config.Config
-	repo   repository.URLRepository
-	log    *zerolog.Logger
+	config  *config.Config
+	repo    repository.URLRepository
+	log     *zerolog.Logger
+	remover *remover.AsyncRemover // this is really bad but I have no time :( now
 }
 
 func NewServer(
@@ -30,11 +32,13 @@ func NewServer(
 	gen urlgenerator.URLGenerator,
 	log *zerolog.Logger,
 	db *postgres.Database,
+	remover *remover.AsyncRemover,
 ) *Server {
 	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	shandler := handler.NewShortenerHandler(srv, config, log)
 	phandler := handler.NewPingHandler(db, config, log)
-	router := handler.NewRouter(shandler, phandler, log)
+	dhandler := handler.NewDeleteHandler(remover, log)
+	router := handler.NewRouter(shandler, phandler, dhandler, log, config)
 
 	return &Server{
 		Server: &http.Server{
@@ -44,9 +48,10 @@ func NewServer(
 			WriteTimeout:      config.ServerWriteTimeout,
 			IdleTimeout:       config.ServerIdleTimeout,
 		},
-		config: config,
-		repo:   repo,
-		log:    log,
+		config:  config,
+		repo:    repo,
+		remover: remover,
+		log:     log,
 	}
 }
 
@@ -68,12 +73,17 @@ func (s *Server) Start() {
 				Msg("Server failed")
 		}
 	}()
+
+	s.remover.Start()
+
 	s.log.Info().Msg("Server started")
 }
 
 func (s *Server) WaitForShutdown(stopChan <-chan os.Signal) {
 	<-stopChan
 	s.log.Info().Msg("Shutdown signal received")
+
+	s.remover.Stop(context.Background())
 
 	if originator, ok := s.repo.(memento.Originator); ok && !s.config.ForceEmptyRepo {
 		manager := memento.NewStateManager(s.config, originator, s.log)

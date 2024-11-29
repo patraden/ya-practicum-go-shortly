@@ -12,6 +12,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/server"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
@@ -38,7 +39,8 @@ func main() {
 		cfg.ForceEmptyRepo = true
 	}
 
-	srv := server.NewServer(cfg, repo, gen, log, database)
+	remover := remover.NewAsyncRemover(cfg.DeleteBatchInterval, repo, log)
+	srv := server.NewServer(cfg, repo, gen, log, database, remover)
 	stopChan := make(chan os.Signal, 1)
 
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
