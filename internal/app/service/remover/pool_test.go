@@ -45,8 +45,8 @@ func TestWorkerPoolSuccess(t *testing.T) {
 
 	failed, missed, succeeded := pool.Metrics()
 	actualProcessed := failed + missed + succeeded
-	assert.Equal(t, int32(jobCount), actualProcessed)
-	assert.Equal(t, int32(0), missed)
+	assert.Equal(t, jobCount, int(actualProcessed))
+	assert.Equal(t, 0, int(missed))
 }
 
 func TestWorkerPoolFailure(t *testing.T) {
@@ -128,6 +128,6 @@ func TestWorkerPoolGracefulShutdown(t *testing.T) {
 	failed, missed, succeeded := pool.Metrics()
 	actualProcessed := failed + missed + succeeded
 
-	assert.Equal(t, int32(jobCount), actualProcessed) // All jobs should be processed
-	assert.Equal(t, int32(0), missed)                 // No missed jobs
+	assert.Equal(t, jobCount, int(actualProcessed)) // All jobs should be processed
+	assert.Equal(t, 0, int(missed))                 // No missed jobs
 }
