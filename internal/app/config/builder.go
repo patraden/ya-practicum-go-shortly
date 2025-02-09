@@ -27,6 +27,7 @@ func newBuilder() *builder {
 			"BaseURL",
 			"FileStoragePath",
 			"DatabaseDSN",
+			"JWTSecret",
 		},
 	}
 }

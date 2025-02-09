@@ -14,6 +14,12 @@ type ShortenedURLResponse struct {
 }
 
 //easyjson:json
+type URLPair struct {
+	Slug        domain.Slug        `json:"short_url"`
+	OriginalURL domain.OriginalURL `json:"original_url"`
+}
+
+//easyjson:json
 type CorrelatedOriginalURL struct {
 	CorrelationID string             `json:"correlation_id"`
 	OriginalURL   domain.OriginalURL `json:"original_url"`
@@ -23,6 +29,11 @@ type CorrelatedOriginalURL struct {
 type CorrelatedSlug struct {
 	CorrelationID string      `json:"correlation_id"`
 	Slug          domain.Slug `json:"short_url"`
+}
+
+type UserSlug struct {
+	Slug   domain.Slug
+	UserID domain.UserID
 }
 
 //easyjson:json
@@ -39,3 +50,22 @@ func (b OriginalURLBatch) Originals() []domain.OriginalURL {
 
 //easyjson:json
 type SlugBatch []CorrelatedSlug
+
+//easyjson:json
+type UserSlugBatch []domain.Slug
+
+//easyjson:json
+type URLPairBatch []URLPair
+
+func NewURLPairBatch(maps *[]domain.URLMapping, baseURL string) *URLPairBatch {
+	res := make(URLPairBatch, len(*maps))
+
+	for i, m := range *maps {
+		res[i] = URLPair{
+			Slug:        domain.Slug(m.Slug.WithBaseURL(baseURL)),
+			OriginalURL: m.OriginalURL,
+		}
+	}
+
+	return &res
+}

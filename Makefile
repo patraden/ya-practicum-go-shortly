@@ -22,6 +22,7 @@ mocks:
 	@mockgen -source=internal/app/service/urlgenerator/urlgenerator.go -destination=internal/app/mock/urlgenerator.go -package=mock URLGenerator
 	@mockgen -source=internal/app/memento/originator.go -destination=internal/app/mock/originator.go -package=mock Originator
 	@mockgen -source=internal/app/service/shortener/shortener.go -destination=internal/app/mock/shortener.go -package=mock URLShortener
+	@mockgen -source=internal/app/service/remover/remover.go -destination=internal/app/mock/remover.go -package=mock URLRemover
 
 
 .PHONY: code
@@ -75,6 +76,10 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration12\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
 	@echo "Running increment13 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration13\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+	@echo "Running increment14 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration14\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+	@echo "Running increment15 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration15\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
 
 
 .PHONY: goose-init

@@ -1,6 +1,6 @@
-POST /
-Content-Type: text/plain
+DELETE /api/user/urls
+Content-Type: application/json
 Host: localhost:8080
 Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDkyNDQ4N2ItOTczYi00NGYyLWExYWQtYzQxYjg2YzNkOTQ3IiwiZXhwIjoxNzY0NDQ3NzgxLCJpYXQiOjE3MzI5MTE3ODF9.xzwEbouObbpswrOxWcIKwIxFFPtfIsrFCLmNEkaLgnc
 
-https://google.ru/
+["GPfY8DiQ", "D65A0Fg0", "dadasada"]

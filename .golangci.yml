@@ -66,11 +66,16 @@ linters-settings:
     exclude:
       - '^net/url.URL$'
       - '^net/http.Server$'
+      - '^net/http.Cookie$'
       - '^github\.com/jackc/pgx/v5\.TxOptions$'
       - '^github\.com/jackc/pgx/v5/pgconn\.PgError$'
+      - '^github\.com/golang-jwt/jwt/v4\.RegisteredClaims$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/config\.Config$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/middleware\.Claims$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/service/remover\.Batcher$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/service/remover\.WorkerPool$'
 
   gosec:
   # To specify a set of rules to explicitly exclude.

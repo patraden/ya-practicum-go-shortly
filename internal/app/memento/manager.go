@@ -132,6 +132,7 @@ func (r *Reader) LoadState() (*Memento, error) {
 		r.log.Info().
 			Str("short_url", string(link.Slug)).
 			Str("long_url", string(link.OriginalURL)).
+			Str("user_id", link.UserID.String()).
 			Time("created_at", link.CreatedAt).
 			Time("expires_at", link.ExpiresAt).
 			Msg("loaded record")
@@ -214,6 +215,7 @@ func (w *Writer) SaveState(state *Memento) error {
 		w.log.Info().
 			Str("short_url", string(link.Slug)).
 			Str("long_url", string(link.OriginalURL)).
+			Str("user_id", link.UserID.String()).
 			Time("created_at", link.CreatedAt).
 			Time("expires_at", link.ExpiresAt).
 			Msg("preserved record")

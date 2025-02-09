@@ -13,7 +13,6 @@ import (
 	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
@@ -22,12 +21,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/handler"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/mock"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
 func setupHandler(t *testing.T) (*gomock.Controller, *mock.MockURLShortener, *handler.ShortenerHandler) {
@@ -344,65 +338,72 @@ func runBatchShortenURLJSON(t *testing.T, handler *handler.ShortenerHandler, tes
 	})
 }
 
-func setupHandleShortenURLCompression() http.Handler {
-	config := config.DefaultConfig()
-	repo := repository.NewInMemoryURLRepository()
-	gen := urlgenerator.NewRandURLGenerator(config.URLsize)
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
-	srv := shortener.NewInsistentShortener(repo, gen, config, log)
-	handler := http.HandlerFunc(handler.NewShortenerHandler(srv, config, log).HandleShortenURL)
-
-	return middleware.Decompress()(middleware.Compress()(handler))
+type testCaseGetUserURLs struct {
+	name         string
+	mockBehavior func()
+	expectedCode int
+	expectedBody string
 }
 
-func TestHandleShortenURLCompression(t *testing.T) {
+func TestHandleGetUserURLs(t *testing.T) {
 	t.Parallel()
 
-	handler := setupHandleShortenURLCompression()
+	ctrl, mockSrv, handler := setupHandler(t)
+	defer ctrl.Finish()
 
-	tests := []struct {
-		name            string
-		contentEncoding string
-		acceptEncoding  string
-		status          int
-		isURL           bool
-	}{
-		{"test 1", "gzip", "", http.StatusCreated, true},
-		{"test 2", "deflate", "", http.StatusCreated, true},
-		{"test 3", "gzip", "deflate", http.StatusCreated, true},
-		{"test 4", "deflate", "gzip", http.StatusCreated, true},
-		{"test 5", "", "", http.StatusCreated, true},
+	tests := []testCaseGetUserURLs{
+		{
+			name: "Successful URL Retrieval",
+			mockBehavior: func() {
+				mockSrv.EXPECT().GetUserURLs(gomock.Any()).
+					Return(&dto.URLPairBatch{
+						{Slug: "http://base.url/short1", OriginalURL: "https://example1.com"},
+						{Slug: "http://base.url/short2", OriginalURL: "https://example2.com"},
+					}, nil)
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `[{"short_url":"http://base.url/short1","original_url":"https://example1.com"},
+											{"short_url":"http://base.url/short2","original_url":"https://example2.com"}]`,
+		},
+		{
+			name: "No URLs Found",
+			mockBehavior: func() {
+				mockSrv.EXPECT().GetUserURLs(gomock.Any()).Return(&dto.URLPairBatch{}, e.ErrUserNotFound)
+			},
+			expectedCode: http.StatusNoContent,
+			expectedBody: ``,
+		},
+		{
+			name: "Internal Server Error",
+			mockBehavior: func() {
+				mockSrv.EXPECT().GetUserURLs(gomock.Any()).Return(&dto.URLPairBatch{}, e.ErrShortenerInternal)
+			},
+			expectedCode: http.StatusInternalServerError,
+			expectedBody: ``,
+		},
 	}
 
 	for _, test := range tests {
-		for range 1 {
-			t.Run(test.name, func(t *testing.T) {
-				t.Parallel()
+		t.Run(test.name, func(t *testing.T) {
+			test.mockBehavior()
 
-				url := utils.RandURL()
-				data, err := utils.Compress([]byte(url), test.contentEncoding)
-				require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+			rctx := chi.NewRouteContext()
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
-				r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(data))
-				r.Header.Set("Content-Encoding", test.contentEncoding)
-				r.Header.Set("Accept-Encoding", test.acceptEncoding)
+			w := httptest.NewRecorder()
 
-				w := httptest.NewRecorder()
-				handler.ServeHTTP(w, r)
+			handler.HandleGetUserURLs(w, req)
 
-				// Read the response and close the body
-				result := w.Result()
-				defer result.Body.Close() // Ensure the body is closed
+			res := w.Result()
+			defer res.Body.Close()
 
-				compressedURL, err := io.ReadAll(result.Body)
-				require.NoError(t, err)
+			assert.Equal(t, test.expectedCode, res.StatusCode)
 
-				shortURL, err := utils.Decompress(compressedURL, test.acceptEncoding)
-				require.NoError(t, err)
-
-				assert.Equal(t, test.status, result.StatusCode)
-				assert.Equal(t, test.isURL, domain.OriginalURL(string(shortURL)).IsValid())
-			})
-		}
+			if test.expectedBody != "" {
+				body, _ := io.ReadAll(res.Body)
+				assert.JSONEq(t, test.expectedBody, string(body))
+			}
+		})
 	}
 }

@@ -41,6 +41,12 @@ func easyjson57a14e87DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 			out.Slug = Slug(in.String())
 		case "original_url":
 			out.OriginalURL = OriginalURL(in.String())
+		case "user_id":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				copy(out.UserID[:], in.Bytes())
+			}
 		case "created_at":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.CreatedAt).UnmarshalJSON(data))
@@ -49,6 +55,8 @@ func easyjson57a14e87DecodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.ExpiresAt).UnmarshalJSON(data))
 			}
+		case "is_deleted":
+			out.Deleted = bool(in.Bool())
 		default:
 			in.SkipRecursive()
 		}
@@ -74,6 +82,11 @@ func easyjson57a14e87EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 		out.String(string(in.OriginalURL))
 	}
 	{
+		const prefix string = ",\"user_id\":"
+		out.RawString(prefix)
+		out.Base64Bytes(in.UserID[:])
+	}
+	{
 		const prefix string = ",\"created_at\":"
 		out.RawString(prefix)
 		out.Raw((in.CreatedAt).MarshalJSON())
@@ -82,6 +95,11 @@ func easyjson57a14e87EncodeGithubComPatradenYaPracticumGoShortlyInternalAppDomai
 		const prefix string = ",\"expires_at\":"
 		out.RawString(prefix)
 		out.Raw((in.ExpiresAt).MarshalJSON())
+	}
+	{
+		const prefix string = ",\"is_deleted\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.Deleted))
 	}
 	out.RawByte('}')
 }
