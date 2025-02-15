@@ -91,6 +91,10 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration14\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
 	@echo "Running increment15 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration15\$$ -binary-path=$(BINARY_PATH) -database-dsn=$(DATABASE_DSN)
+	@echo "Running increment16 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration16\$$ -source-path=$(SOURCE_PATH)
+	@echo "Running increment17 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration17\$$ -source-path=$(SOURCE_PATH)
 
 
 .PHONY: goose-init
