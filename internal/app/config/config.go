@@ -12,7 +12,7 @@ const (
 	defaultWriteTimeout        = 10 * time.Second  // Maximum duration to write response
 	defaultIdleTimeout         = 120 * time.Second // Maximum duration for idle connections
 	defaultURLSize             = 8
-	defaultBatchingInterval    = 100 * time.Millisecond
+	defaultBatchingInterval    = time.Second
 )
 
 type Config struct {

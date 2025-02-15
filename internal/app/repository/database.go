@@ -170,7 +170,7 @@ func (repo *DBURLRepository) GetUserURLMappings(ctx context.Context, user domain
 	retriableQuery := func() error {
 		qresults, err := repo.queries.GetUserURLMappings(ctx, user)
 
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) || len(qresults) == 0 {
 			return e.ErrUserNotFound
 		}
 
