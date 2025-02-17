@@ -95,6 +95,8 @@ shortenertest: build
 	@shortenertestbeta -test.v -test.run=\^TestIteration16\$$ -source-path=$(SOURCE_PATH)
 	@echo "Running increment17 test"
 	@shortenertestbeta -test.v -test.run=\^TestIteration17\$$ -source-path=$(SOURCE_PATH)
+	@echo "Running increment18 test"
+	@shortenertestbeta -test.v -test.run=\^TestIteration18\$$ -source-path=$(SOURCE_PATH)
 
 
 .PHONY: goose-init

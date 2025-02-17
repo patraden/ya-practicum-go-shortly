@@ -10,11 +10,13 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
 )
 
+// DeleteHandler handles requests related to deleting slugs.
 type DeleteHandler struct {
 	log     *zerolog.Logger
 	remover remover.URLRemover
 }
 
+// NewDeleteHandler creates and returns a new DeleteHandler instance.
 func NewDeleteHandler(remover remover.URLRemover, log *zerolog.Logger) *DeleteHandler {
 	return &DeleteHandler{
 		remover: remover,
@@ -22,6 +24,7 @@ func NewDeleteHandler(remover remover.URLRemover, log *zerolog.Logger) *DeleteHa
 	}
 }
 
+// HandleDelUserURLs removes the user's URLs by slugs provided in the request body.
 func (h *DeleteHandler) HandleDelUserURLs(w http.ResponseWriter, r *http.Request) {
 	var userSlugs dto.UserSlugBatch
 

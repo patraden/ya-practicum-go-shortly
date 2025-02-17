@@ -14,12 +14,15 @@ import (
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
+// Aux constants.
 const (
 	UserIDKey            contextKey = "user_id"
 	AuthCookieName                  = "auth_token"
 	defaultTokenDuration            = 365 * 24 * time.Hour
 )
 
+// Authenticate is a middleware handler that checks if the request has a valid JWT token.
+// If the token is not valid, it generates a new one and sets it in the response cookie.
 func Authenticate(log *zerolog.Logger, config *config.Config) func(next http.Handler) http.Handler {
 	auth := NewJWTMiddleware(
 		func(*jwt.Token) (interface{}, error) { return []byte(config.JWTSecret), nil },
@@ -29,6 +32,8 @@ func Authenticate(log *zerolog.Logger, config *config.Config) func(next http.Han
 	return auth.AuthenticateHandler
 }
 
+// Authorize is a middleware handler that checks if the request is authorized with a valid JWT token.
+// It ensures that the user is authenticated before allowing access to the resource.
 func Authorize(log *zerolog.Logger, config *config.Config) func(next http.Handler) http.Handler {
 	auth := NewJWTMiddleware(
 		func(*jwt.Token) (interface{}, error) { return []byte(config.JWTSecret), nil },
@@ -38,22 +43,26 @@ func Authorize(log *zerolog.Logger, config *config.Config) func(next http.Handle
 	return auth.AuthorizeHandler
 }
 
+// Aux types.
 type (
 	contextKey     string
 	TokenExtractor func(r *http.Request) (string, error)
 )
 
+// Claims represents the JWT claims for a user. It includes the user ID and standard JWT claims.
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
+// JWTMiddleware is a struct that provides JWT-based authentication and authorization middleware.
 type JWTMiddleware struct {
 	keyFunc   jwt.Keyfunc
 	log       *zerolog.Logger
 	extractor TokenExtractor
 }
 
+// CookieTokenExtractor extracts the JWT token from a cookie in the HTTP request.
 func CookieTokenExtractor(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(AuthCookieName)
 
@@ -68,6 +77,7 @@ func CookieTokenExtractor(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
+// NewJWTMiddleware creates a new JWTMiddleware instance with the provided key function and logger.
 func NewJWTMiddleware(keyFunc jwt.Keyfunc, log *zerolog.Logger) *JWTMiddleware {
 	// add signature method validation
 	kfunc := func(t *jwt.Token) (interface{}, error) {
@@ -85,6 +95,7 @@ func NewJWTMiddleware(keyFunc jwt.Keyfunc, log *zerolog.Logger) *JWTMiddleware {
 	}
 }
 
+// ValidateToken validates the JWT token string and returns the claims if valid.
 func (auth *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 
@@ -118,6 +129,7 @@ func (auth *JWTMiddleware) ValidateToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
+// GenerateToken generates a new JWT token for the provided user ID.
 func (auth *JWTMiddleware) GenerateToken(userID domain.UserID) (string, error) {
 	now := time.Now()
 
@@ -179,6 +191,8 @@ func (auth *JWTMiddleware) extractAndValidateToken(r *http.Request) (domain.User
 	return userID, token, nil
 }
 
+// AuthenticateHandler is the handler for the Authenticate middleware.
+// It validates or generates a token and adds the user ID to the request context.
 func (auth *JWTMiddleware) AuthenticateHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, token, err := auth.extractAndValidateToken(r)
@@ -207,6 +221,8 @@ func (auth *JWTMiddleware) AuthenticateHandler(next http.Handler) http.Handler {
 	})
 }
 
+// AuthorizeHandler is the handler for the Authorize middleware.
+// It ensures that the request is authorized with a valid token before proceeding.
 func (auth *JWTMiddleware) AuthorizeHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, _, err := auth.extractAndValidateToken(r)
@@ -224,6 +240,7 @@ func (auth *JWTMiddleware) AuthorizeHandler(next http.Handler) http.Handler {
 	})
 }
 
+// GetUserID extracts the user ID from the request context.
 func GetUserID(ctx context.Context) (domain.UserID, bool) {
 	userID, ok := ctx.Value(UserIDKey).(domain.UserID)
 

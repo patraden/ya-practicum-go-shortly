@@ -2,6 +2,7 @@ package batcher
 
 import "errors"
 
+// Batcher static errors.
 var (
 	ErrClosed          = errors.New("batcher: is closed")
 	ErrMissedValue     = errors.New("batcher: missed value")

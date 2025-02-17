@@ -25,12 +25,14 @@ const (
 	queryMaxElapsedTime = 5 * time.Second
 )
 
+// DBURLRepository is responsible for interacting with the database to handle URL mappings.
 type DBURLRepository struct {
 	connPool postgres.ConnenctionPool
 	queries  *q.Queries
 	log      *zerolog.Logger
 }
 
+// NewDBURLRepository creates a new instance of DBURLRepository with a connection pool and logger.
 func NewDBURLRepository(pool postgres.ConnenctionPool, log *zerolog.Logger) *DBURLRepository {
 	return &DBURLRepository{
 		connPool: pool,
@@ -39,6 +41,8 @@ func NewDBURLRepository(pool postgres.ConnenctionPool, log *zerolog.Logger) *DBU
 	}
 }
 
+// WithRetry retries the execution of the provided query function in case of transient errors
+// such as connection or query execution issues.
 func (repo *DBURLRepository) WithRetry(ctx context.Context, query func() error) error {
 	boff := utils.LinearBackoff(queryMaxElapsedTime, queryRetryInterval)
 
@@ -90,6 +94,7 @@ func (repo *DBURLRepository) WithRetry(ctx context.Context, query func() error) 
 	return nil
 }
 
+// AddURLMapping adds a new URL mapping to the database and returns the created URL mapping.
 func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.URLMapping) (*domain.URLMapping, error) {
 	var res *domain.URLMapping
 
@@ -130,6 +135,7 @@ func (repo *DBURLRepository) AddURLMapping(ctx context.Context, urlMap *domain.U
 	return res, nil
 }
 
+// GetURLMapping retrieves a URL mapping by its slug from the database.
 func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
 	var urlMap *domain.URLMapping
 
@@ -164,6 +170,7 @@ func (repo *DBURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug
 	return urlMap, nil
 }
 
+// GetUserURLMappings retrieves all URL mappings for a given user from the database.
 func (repo *DBURLRepository) GetUserURLMappings(ctx context.Context, user domain.UserID) ([]domain.URLMapping, error) {
 	var results []domain.URLMapping
 
@@ -201,6 +208,7 @@ func (repo *DBURLRepository) GetUserURLMappings(ctx context.Context, user domain
 	return results, nil
 }
 
+// AddURLMappingBatch adds multiple URL mappings in a single batch to the database.
 func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]domain.URLMapping) error {
 	retriableQuery := func() error {
 		trx, err := repo.connPool.BeginTx(ctx, pgx.TxOptions{})
@@ -261,7 +269,8 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 	return nil
 }
 
-func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks *[]dto.UserSlug) error {
+// DelUserURLMappings deletes URL mappings for a user based on their slugs.
+func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto.UserSlug) error {
 	var err error
 	var rowsAffected int64
 
@@ -284,9 +293,9 @@ func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks *[]dt
 		}()
 
 		txQueries := repo.queries.WithTx(trx)
-		deleteSlugParams := make([]q.FillDeletedSlugTempTableParams, len(*tasks))
+		deleteSlugParams := make([]q.FillDeletedSlugTempTableParams, len(tasks))
 
-		for i, task := range *tasks {
+		for i, task := range tasks {
 			deleteSlugParams[i] = q.FillDeletedSlugTempTableParams{
 				Slug:   task.Slug,
 				UserID: task.UserID,

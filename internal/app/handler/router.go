@@ -10,6 +10,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 )
 
+// HTTP router.
 func NewRouter(
 	shandler *ShortenerHandler,
 	phandler *PingHandler,

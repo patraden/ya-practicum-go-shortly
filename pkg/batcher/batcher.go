@@ -9,26 +9,31 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Batcher aux constats.
 const (
-	UnlimitedSize               = 0
-	DefaultBuffer               = 1000
-	NoTimeout     time.Duration = 0
+	UnlimitedSize               = 0    // Batch an unlimited amount of operations.
+	NoTimeout     time.Duration = 0    // Batch operations for an infinite duration.
+	DefaultBuffer               = 1000 // Default operations buffer size.
 )
 
+// Batcher configuration option.
 type Option func(*Batcher)
 
+// WithMaxSize configures the max size constraint on a batcher.
 func WithMaxSize(maxSize int) Option {
 	return func(b *Batcher) {
 		b.maxSize = maxSize
 	}
 }
 
+// WithTimeout configures the timeout constraint on a batcher.
 func WithTimeout(timeout time.Duration) Option {
 	return func(b *Batcher) {
 		b.timeout = timeout
 	}
 }
 
+// WithBufferSize configure buffer size for operations to improve performance.
 func WithBufferSize(bufferSize int) Option {
 	size := DefaultBuffer
 	if bufferSize > 0 {
@@ -40,12 +45,18 @@ func WithBufferSize(bufferSize int) Option {
 	}
 }
 
+// WithLogger configures zerolog.Logger to be used by Batcher.
 func WithLogger(log *zerolog.Logger) Option {
 	return func(b *Batcher) {
 		b.log = log
 	}
 }
 
+// Batcher provides a generic and versatile implementation of a batching algorithm for Golang,
+// with no third-party dependencies.
+//
+// The algorithm can be constrained in space and time, with a simple yet robust API,
+// enabling developers to easily incorporate batching into their live services.
 type Batcher struct {
 	commitFn CommitFunc
 	maxSize  int
@@ -55,6 +66,25 @@ type Batcher struct {
 	closing  uint32
 }
 
+// New creates a new batcher, calling the commit function each time it
+// completes a batch of operations according to its options. It panics if the
+// commit function is nil, max size is negative, timeout is negative or max
+// size equals [UnlimitedSize] and timeout equals [NoTimeout] (the default if
+// no options are provided).
+//
+// Some examples:
+//
+// Create a batcher committing a batch every 10 operations:
+//
+//	New(commitFn, WithMaxSize(10))
+//
+// Create a batcher committing a batch every second:
+//
+//	New(commitFn, WithTimeout(1 * time.Second))
+//
+// Create a batcher committing a batch containing at most 10 operations and at most 1 second:
+//
+//	New(commitFn, WithMaxSize(10), WithTimeout(1 * time.Second))
 func New(commitFn CommitFunc, opts ...Option) (*Batcher, error) {
 	log := zerolog.New(os.Stdout).
 		With().
@@ -97,7 +127,7 @@ func New(commitFn CommitFunc, opts ...Option) (*Batcher, error) {
 // Send creates a new operation and sends it to the batcher in a blocking
 // fashion. If the provided context expires before the batcher receives the
 // operation, Send returns the context's error.
-func (b *Batcher) Send(ctx context.Context, v []byte) (*Operation, error) {
+func (b *Batcher) Send(ctx context.Context, v any) (*Operation, error) {
 	if atomic.LoadUint32(&b.closing) == 1 {
 		return nil, ErrClosed
 	}
@@ -118,7 +148,6 @@ func (b *Batcher) Send(ctx context.Context, v []byte) (*Operation, error) {
 // When the provided context expires, the batching process is interrupted and
 // the function returns after a final call to the commit function.
 // While shutting down, the send method would return error in a non-blocking fashion.
-
 func (b *Batcher) Batch(ctx context.Context) {
 	var tch <-chan time.Time
 

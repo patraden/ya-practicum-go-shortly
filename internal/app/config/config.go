@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Default app config constants.
 const (
 	defaultURLGenTimeout       = 2 * time.Second
 	defaultURLGenRetryInterval = 100 * time.Millisecond
@@ -15,6 +16,7 @@ const (
 	defaultBatchingInterval    = time.Second
 )
 
+// Config holds the app configuration settings, which can be set through environment variables or flags.
 type Config struct {
 	ServerAddr              string `env:"SERVER_ADDRESS"`
 	BaseURL                 string `env:"BASE_URL"`
@@ -32,6 +34,7 @@ type Config struct {
 	ForceEmptyRepo          bool
 }
 
+// DefaultConfig app config.
 func DefaultConfig() *Config {
 	return &Config{
 		ServerAddr:              `localhost:8080`,
@@ -51,6 +54,7 @@ func DefaultConfig() *Config {
 	}
 }
 
+// LoadConfig initializes and returns a Config instance.
 func LoadConfig() *Config {
 	builder := newBuilder()
 	builder.loadEnvConfig()

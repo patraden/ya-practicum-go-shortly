@@ -14,18 +14,21 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 )
 
+// Aux StateManager constants.
 const (
 	PermReadWriteUser = 0o644 // Read/write for owner, read-only for others
 	EOL               = "\n"
 	errLabel          = "memento"
 )
 
+// StateManager is responsible for managing the state of the URL mappings.
 type StateManager struct {
 	config     *config.Config
 	originator Originator
 	log        *zerolog.Logger
 }
 
+// NewStateManager creates a new instance of StateManager.
 func NewStateManager(config *config.Config, originator Originator, log *zerolog.Logger) *StateManager {
 	return &StateManager{
 		config:     config,
@@ -34,6 +37,7 @@ func NewStateManager(config *config.Config, originator Originator, log *zerolog.
 	}
 }
 
+// RestoreFromState restores the state of the system from a given Memento.
 func (sm *StateManager) RestoreFromState(state *Memento) error {
 	if err := sm.originator.RestoreMemento(state); err != nil {
 		return e.ErrStateRestore
@@ -42,6 +46,7 @@ func (sm *StateManager) RestoreFromState(state *Memento) error {
 	return nil
 }
 
+// RestoreFromFile restores the state from a file stored at the configured file path.
 func (sm *StateManager) RestoreFromFile() error {
 	r, err := NewReader(sm.config.FileStoragePath, sm.log)
 	if err != nil {
@@ -61,6 +66,7 @@ func (sm *StateManager) RestoreFromFile() error {
 	return nil
 }
 
+// StoreToFile stores the current state to the file at the configured file path.
 func (sm *StateManager) StoreToFile() error {
 	w, err := NewWriter(sm.config.FileStoragePath, sm.log)
 	if err != nil {
@@ -81,12 +87,14 @@ func (sm *StateManager) StoreToFile() error {
 	return nil
 }
 
+// Reader is responsible for reading the state from a file.
 type Reader struct {
 	file    *os.File
 	scanner *bufio.Scanner
 	log     *zerolog.Logger
 }
 
+// NewReader creates a new Reader instance for reading state from a file.
 func NewReader(fileName string, log *zerolog.Logger) (*Reader, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, PermReadWriteUser)
 	if err != nil {
@@ -105,6 +113,7 @@ func NewReader(fileName string, log *zerolog.Logger) (*Reader, error) {
 	}, nil
 }
 
+// LoadState loads the state from the file and returns it as a Memento instance.
 func (r *Reader) LoadState() (*Memento, error) {
 	state := make(dto.URLMappings)
 	var count int
@@ -149,6 +158,7 @@ func (r *Reader) LoadState() (*Memento, error) {
 	return NewMemento(state), nil
 }
 
+// Reset resets the scanner to the beginning of the file.
 func (r *Reader) Reset() error {
 	if _, err := r.file.Seek(0, io.SeekStart); err != nil {
 		return e.Wrap("file scanner seek error", err, errLabel)
@@ -159,6 +169,7 @@ func (r *Reader) Reset() error {
 	return nil
 }
 
+// Close closes the reader's file.
 func (r *Reader) Close() error {
 	err := r.file.Close()
 	if err != nil {
@@ -168,11 +179,13 @@ func (r *Reader) Close() error {
 	return nil
 }
 
+// Writer is responsible for saving the state to a file.
 type Writer struct {
 	file *os.File
 	log  *zerolog.Logger
 }
 
+// NewWriter creates a new Writer instance for saving state to a file.
 func NewWriter(fileName string, log *zerolog.Logger) (*Writer, error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, PermReadWriteUser)
 	if err != nil {
@@ -190,6 +203,7 @@ func NewWriter(fileName string, log *zerolog.Logger) (*Writer, error) {
 	}, nil
 }
 
+// SaveState saves the given state to the file.
 func (w *Writer) SaveState(state *Memento) error {
 	writer := bufio.NewWriter(w.file)
 	defer writer.Flush()
@@ -228,6 +242,7 @@ func (w *Writer) SaveState(state *Memento) error {
 	return nil
 }
 
+// Close closes the writer's file.
 func (w *Writer) Close() error {
 	err := w.file.Close()
 	if err != nil {

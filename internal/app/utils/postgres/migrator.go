@@ -10,12 +10,14 @@ import (
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
+// Migrator represents a migration manager for applying migrations to a PostgreSQL database.
 type Migrator struct {
 	db      *sql.DB
 	dialect string
 	dir     string
 }
 
+// NewMigrator creates a new Migrator instance for managing migrations.
 func NewMigrator(db *sql.DB, dialect, dir string) *Migrator {
 	return &Migrator{
 		db:      db,
@@ -24,6 +26,7 @@ func NewMigrator(db *sql.DB, dialect, dir string) *Migrator {
 	}
 }
 
+// Up applies migrations from the migration directory to the database.
 func (m *Migrator) Up() error {
 	if err := goose.SetDialect(m.dialect); err != nil {
 		return e.Wrap("failed to set dialect:", err, errLabel)
@@ -36,6 +39,7 @@ func (m *Migrator) Up() error {
 	return nil
 }
 
+// NewPGMigrator creates a new Migrator instance using a PostgreSQL connection string and migration directory.
 func NewPGMigrator(connString, dir string) (*Migrator, error) {
 	db, err := sql.Open("pgx", connString)
 	if err != nil {

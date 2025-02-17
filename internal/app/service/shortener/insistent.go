@@ -7,7 +7,6 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
@@ -21,6 +20,8 @@ import (
 
 const batchGenFactor = 100
 
+// InsistentShortener is a URL shortener that retries generating slugs in case of collisions
+// with backoff logic to ensure successful URL shortening.
 type InsistentShortener struct {
 	repo         repository.URLRepository
 	urlGenerator urlgenerator.URLGenerator
@@ -28,6 +29,8 @@ type InsistentShortener struct {
 	log          *zerolog.Logger
 }
 
+// NewInsistentShortener creates a new instance of InsistentShortener with the provided repository,
+// URL generator, configuration, and logger.
 func NewInsistentShortener(
 	repo repository.URLRepository,
 	gen urlgenerator.URLGenerator,
@@ -53,8 +56,6 @@ func (s *InsistentShortener) generateSlugWithBackoff(ctx context.Context, operat
 	try := 1
 
 	err := backoff.Retry(func() error {
-		log.Info().Int("try", try).Msg("slug(s) generation attempt")
-
 		try++
 
 		return operation()
@@ -66,6 +67,8 @@ func (s *InsistentShortener) generateSlugWithBackoff(ctx context.Context, operat
 	return nil
 }
 
+// ShortenURL shortens a URL by generating a unique slug for the original URL and saving it to the repository.
+// It retries generating a slug in case of collisions.
 func (s *InsistentShortener) ShortenURL(ctx context.Context, original domain.OriginalURL) (domain.Slug, error) {
 	var slug domain.Slug
 	var err error
@@ -118,6 +121,8 @@ func (s *InsistentShortener) ShortenURL(ctx context.Context, original domain.Ori
 	return m.Slug, nil
 }
 
+// GetOriginalURL retrieves the original URL associated with the given slug.
+// If the slug does not exist or has been deleted, appropriate errors are returned.
 func (s *InsistentShortener) GetOriginalURL(ctx context.Context, slug domain.Slug) (domain.OriginalURL, error) {
 	if !s.urlGenerator.IsValidSlug(slug) {
 		return "", e.ErrSlugInvalid
@@ -142,6 +147,8 @@ func (s *InsistentShortener) GetOriginalURL(ctx context.Context, slug domain.Slu
 	return urlm.OriginalURL, nil
 }
 
+// GetUserURLs retrieves all URL mappings for a specific user.
+// It returns the URLs in a batch format for efficiency.
 func (s *InsistentShortener) GetUserURLs(ctx context.Context) (*dto.URLPairBatch, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
@@ -165,6 +172,8 @@ func (s *InsistentShortener) GetUserURLs(ctx context.Context) (*dto.URLPairBatch
 	return dto.NewURLPairBatch(&res, s.config.BaseURL), nil
 }
 
+// ShortenURLBatch shortens a batch of URLs by generating unique slugs for each one and storing the mappings.
+// It retries generating slugs in case of collisions for the batch of URLs.
 func (s *InsistentShortener) ShortenURLBatch(ctx context.Context, batch *dto.OriginalURLBatch) (*dto.SlugBatch, error) {
 	size := len(*batch)
 	originals := batch.Originals()
