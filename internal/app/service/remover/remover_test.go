@@ -31,8 +31,8 @@ func TestAsyncRemover(t *testing.T) {
 
 	mockRepo.EXPECT().
 		DelUserURLMappings(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, tasks *[]dto.UserSlug) error {
-			for _, task := range *tasks {
+		DoAndReturn(func(_ context.Context, tasks []dto.UserSlug) error {
+			for _, task := range tasks {
 				time.Sleep(time.Millisecond)
 				atomic.AddInt32(&taskCounter, 1)
 				log.Info().
@@ -53,14 +53,18 @@ func TestAsyncRemover(t *testing.T) {
 		slugs = append(slugs, domain.Slug("slug"+strconv.Itoa(i)))
 	}
 
-	ctx := context.WithValue(context.Background(), middleware.UserIDKey, user)
-	remover := remover.NewAsyncRemover(100*time.Millisecond, mockRepo, log)
-	remover.Start()
-	assert.True(t, remover.IsRunning())
-
-	err := remover.RemoveUserSlugs(ctx, slugs)
+	remover, err := remover.NewBatchRemover(mockRepo, log)
 	require.NoError(t, err)
 
-	remover.Stop(ctx)
+	ctxStart, cancelStart := context.WithCancel(context.Background())
+	remover.Start(ctxStart)
+
+	ctxRemove := context.WithValue(context.Background(), middleware.UserIDKey, user)
+	err = remover.RemoveUserSlugs(ctxRemove, slugs)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	cancelStart()
+	remover.Stop(context.Background())
 	assert.Equal(t, expectedTasks, int(taskCounter))
 }

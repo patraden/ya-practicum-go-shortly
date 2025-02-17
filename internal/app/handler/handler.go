@@ -16,18 +16,21 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 )
 
+// Handler aux constants.
 const (
 	ContentType     = "Content-Type"
 	ContentTypeText = "text/plain"
 	ContentTypeJSON = "application/json"
 )
 
+// ShortenerHandler provides HTTP request handling for URL shortening operations.
 type ShortenerHandler struct {
 	service shortener.URLShortener
 	config  *config.Config
 	log     *zerolog.Logger
 }
 
+// NewShortenerHandler creates a new instance of ShortenerHandler.
 func NewShortenerHandler(service shortener.URLShortener, config *config.Config, log *zerolog.Logger) *ShortenerHandler {
 	return &ShortenerHandler{
 		service: service,
@@ -36,6 +39,7 @@ func NewShortenerHandler(service shortener.URLShortener, config *config.Config, 
 	}
 }
 
+// HandleGetOriginalURL handles requests to retrieve the original URL from a shortened slug.
 func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	slug := domain.Slug(chi.URLParam(r, "shortURL"))
 	original, err := h.service.GetOriginalURL(r.Context(), slug)
@@ -63,6 +67,7 @@ func (h *ShortenerHandler) HandleGetOriginalURL(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// HandleGetUserURLs retrieves all shortened URLs for the requesting user.
 func (h *ShortenerHandler) HandleGetUserURLs(w http.ResponseWriter, r *http.Request) {
 	batch, err := h.service.GetUserURLs(r.Context())
 
@@ -87,6 +92,7 @@ func (h *ShortenerHandler) HandleGetUserURLs(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// HandleShortenURL handles requests to shorten a given URL.
 func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	originalURL := domain.OriginalURL(string(b))
@@ -119,6 +125,7 @@ func (h *ShortenerHandler) HandleShortenURL(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// HandleShortenURLJSON handles URL shortening requests with a JSON payload.
 func (h *ShortenerHandler) HandleShortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	urlReq := dto.ShortenURLRequest{LongURL: ""}
 
@@ -152,6 +159,7 @@ func (h *ShortenerHandler) HandleShortenURLJSON(w http.ResponseWriter, r *http.R
 	}
 }
 
+// HandleBatchShortenURLJSON processes batch URL shortening requests.
 func (h *ShortenerHandler) HandleBatchShortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	var urlReqs dto.OriginalURLBatch
 

@@ -18,21 +18,25 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
 
+// Server represents the HTTP server for the URL shortening service.
 type Server struct {
 	*http.Server
-	config  *config.Config
-	repo    repository.URLRepository
-	log     *zerolog.Logger
-	remover *remover.AsyncRemover // this is really bad but I have no time :( now
+	config        *config.Config
+	repo          repository.URLRepository
+	log           *zerolog.Logger
+	remover       *remover.BatchRemover // this is really bad but I have no time :( now
+	removerCancel func()
 }
 
+// NewServer creates a new Server instance with the provided configuration,
+// repository, URL generator, logger, database, and batch remover.
 func NewServer(
 	config *config.Config,
 	repo repository.URLRepository,
 	gen urlgenerator.URLGenerator,
 	log *zerolog.Logger,
 	db *postgres.Database,
-	remover *remover.AsyncRemover,
+	remover *remover.BatchRemover,
 ) *Server {
 	srv := shortener.NewInsistentShortener(repo, gen, config, log)
 	shandler := handler.NewShortenerHandler(srv, config, log)
@@ -48,13 +52,16 @@ func NewServer(
 			WriteTimeout:      config.ServerWriteTimeout,
 			IdleTimeout:       config.ServerIdleTimeout,
 		},
-		config:  config,
-		repo:    repo,
-		remover: remover,
-		log:     log,
+		config:        config,
+		repo:          repo,
+		remover:       remover,
+		removerCancel: func() {},
+		log:           log,
 	}
 }
 
+// Start starts the HTTP server and loads the repository state from file if necessary.
+// It also starts the batch remover service.
 func (s *Server) Start() {
 	if originator, ok := s.repo.(memento.Originator); ok && !s.config.ForceEmptyRepo {
 		manager := memento.NewStateManager(s.config, originator, s.log)
@@ -74,15 +81,19 @@ func (s *Server) Start() {
 		}
 	}()
 
-	s.remover.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	s.remover.Start(ctx)
+	s.removerCancel = cancel
 
 	s.log.Info().Msg("Server started")
 }
 
+// WaitForShutdown waits for a shutdown signal and handles graceful shutdown of the server and batch remover service.
 func (s *Server) WaitForShutdown(stopChan <-chan os.Signal) {
 	<-stopChan
 	s.log.Info().Msg("Shutdown signal received")
 
+	s.removerCancel()
 	s.remover.Stop(context.Background())
 
 	if originator, ok := s.repo.(memento.Originator); ok && !s.config.ForceEmptyRepo {

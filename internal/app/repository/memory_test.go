@@ -205,7 +205,7 @@ func TestDelUserURLMappings(t *testing.T) {
 		{Slug: "slug4", UserID: otherUserID},
 	}
 
-	err = repo.DelUserURLMappings(ctx, &tasks)
+	err = repo.DelUserURLMappings(ctx, tasks)
 	require.NoError(t, err)
 
 	m1, err := repo.GetURLMapping(ctx, "slug1")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Static errors.
 var (
 	ErrStateCreate            = errors.New("[memento] could not create state")
 	ErrStateRestore           = errors.New("[memento] could not restore state")
@@ -15,11 +16,13 @@ var (
 	ErrUserNotFound           = errors.New("[repository] user not found")
 	ErrMissedJob              = errors.New("[batcher] missed output job")
 	ErrMissedTask             = errors.New("[batcher] missed input task")
+	ErrFailedCast             = errors.New("[batcher] failed to cast")
 	ErrSlugInvalid            = errors.New("[shortener] invalid slug")
 	ErrSlugDeleted            = errors.New("[shortener] slug deleted")
 	ErrSlugCollision          = errors.New("[shortener] slug collision")
 	ErrShortenerInternal      = errors.New("[shortener] internal error")
 	ErrRemoverInternal        = errors.New("[remover] internal error")
+	ErrRemoverInitBatcher     = errors.New("[remover] init batcher error")
 	ErrInvalidConfig          = errors.New("[config] bad config parameters")
 	ErrEnvConfigParse         = errors.New("[config] env vars parsing error")
 	ErrUtilsCompEncoding      = errors.New("[utils] bad compression encoding")
@@ -33,6 +36,7 @@ var (
 	ErrTestGeneral            = errors.New("[test] test error")
 )
 
+// Wrap formats and wraps an error message with a specific label.
 func Wrap(msg string, err error, label string) error {
 	return fmt.Errorf("[%s] %s: %w", label, msg, err)
 }

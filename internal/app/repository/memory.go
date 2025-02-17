@@ -10,6 +10,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 )
 
+// InMemoryURLRepository is an in-memory implementation of the URL repository.
 type InMemoryURLRepository struct {
 	sync.RWMutex
 	values   dto.URLMappings
@@ -17,6 +18,7 @@ type InMemoryURLRepository struct {
 	usrIndex map[domain.UserID][]domain.Slug
 }
 
+// NewInMemoryURLRepository creates a new InMemoryURLRepository instance.
 func NewInMemoryURLRepository() *InMemoryURLRepository {
 	return &InMemoryURLRepository{
 		RWMutex:  sync.RWMutex{},
@@ -26,6 +28,7 @@ func NewInMemoryURLRepository() *InMemoryURLRepository {
 	}
 }
 
+// AddURLMapping adds a new URL mapping to the repository.
 func (ms *InMemoryURLRepository) AddURLMapping(
 	_ context.Context,
 	urlMap *domain.URLMapping,
@@ -51,6 +54,7 @@ func (ms *InMemoryURLRepository) AddURLMapping(
 	return urlMap, nil
 }
 
+// GetURLMapping retrieves a URL mapping by its slug.
 func (ms *InMemoryURLRepository) GetURLMapping(_ context.Context, slug domain.Slug) (*domain.URLMapping, error) {
 	ms.RLock()
 	defer ms.RUnlock()
@@ -63,6 +67,7 @@ func (ms *InMemoryURLRepository) GetURLMapping(_ context.Context, slug domain.Sl
 	return &m, nil
 }
 
+// GetUserURLMappings retrieves all URL mappings for a specific user.
 func (ms *InMemoryURLRepository) GetUserURLMappings(
 	_ context.Context,
 	user domain.UserID,
@@ -82,6 +87,7 @@ func (ms *InMemoryURLRepository) GetUserURLMappings(
 	return res, nil
 }
 
+// AddURLMappingBatch adds multiple URL mappings in a single batch to the database.
 func (ms *InMemoryURLRepository) AddURLMappingBatch(_ context.Context, batch *[]domain.URLMapping) error {
 	ms.Lock()
 	defer ms.Unlock()
@@ -107,6 +113,7 @@ func (ms *InMemoryURLRepository) AddURLMappingBatch(_ context.Context, batch *[]
 	return nil
 }
 
+// CreateMemento creates a memento of the current state of the repository.
 func (ms *InMemoryURLRepository) CreateMemento() (*memento.Memento, error) {
 	ms.RLock()
 	defer ms.RUnlock()
@@ -116,6 +123,7 @@ func (ms *InMemoryURLRepository) CreateMemento() (*memento.Memento, error) {
 	return memento.NewMemento(cp), nil
 }
 
+// RestoreMemento restores the state of the repository from the given memento.
 func (ms *InMemoryURLRepository) RestoreMemento(m *memento.Memento) error {
 	if m == nil {
 		return nil
@@ -140,11 +148,12 @@ func (ms *InMemoryURLRepository) RestoreMemento(m *memento.Memento) error {
 	return nil
 }
 
-func (ms *InMemoryURLRepository) DelUserURLMappings(_ context.Context, tasks *[]dto.UserSlug) error {
-	updateTasks := make([]dto.UserSlug, 0, len(*tasks))
+// DelUserURLMappings marks user URL mappings as deleted based on the provided tasks.
+func (ms *InMemoryURLRepository) DelUserURLMappings(_ context.Context, tasks []dto.UserSlug) error {
+	updateTasks := make([]dto.UserSlug, 0, len(tasks))
 
 	ms.RLock()
-	for _, task := range *tasks {
+	for _, task := range tasks {
 		val, ok := ms.values[task.Slug]
 		if ok && val.UserID == task.UserID {
 			updateTasks = append(updateTasks, task)

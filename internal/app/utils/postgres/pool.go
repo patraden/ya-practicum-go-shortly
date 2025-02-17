@@ -9,6 +9,8 @@ import (
 
 const errLabel = "postgres"
 
+// ConnenctionPool defines the set of methods required for interacting with a PostgreSQL connection pool.
+// This interface abstracts common database operations like executing queries, transactions, and copying data.
 type ConnenctionPool interface {
 	Exec(ctx context.Context, query string, options ...interface{}) (pgconn.CommandTag, error)
 	Query(ctx context.Context, query string, options ...interface{}) (pgx.Rows, error)

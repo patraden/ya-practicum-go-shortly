@@ -11,11 +11,12 @@ import (
 
 const errLabel = "utils"
 
+// IsServerAddress checks if the provided address is a valid server address with the format "server:port".
 func IsServerAddress(addr string) bool {
 	return len(strings.Split(addr, ":")) == len(strings.Split("server:port", ":"))
 }
 
-// backoff that retries in constant time.
+// LinearBackoff creates a backoff policy that retries in constant time.
 func LinearBackoff(maxElapsedTime time.Duration, interval time.Duration) *backoff.ExponentialBackOff {
 	return backoff.NewExponentialBackOff(
 		backoff.WithMaxElapsedTime(maxElapsedTime),
@@ -25,7 +26,7 @@ func LinearBackoff(maxElapsedTime time.Duration, interval time.Duration) *backof
 	)
 }
 
-// Generate a random string for paths or query parameters.
+// RandomString generates a random string of length n consisting of uppercase and lowercase letters.
 func RandomString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, n)
@@ -37,6 +38,7 @@ func RandomString(n int) string {
 	return string(b)
 }
 
+// RandURL generates a random URL with a random domain, path, and query parameters.
 func RandURL() string {
 	domainLen := 10
 	pathLen := 10

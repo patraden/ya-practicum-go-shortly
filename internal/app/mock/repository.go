@@ -73,7 +73,7 @@ func (mr *MockURLRepositoryMockRecorder) AddURLMappingBatch(ctx, batch any) *gom
 }
 
 // DelUserURLMappings mocks base method.
-func (m *MockURLRepository) DelUserURLMappings(ctx context.Context, tasks *[]dto.UserSlug) error {
+func (m *MockURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto.UserSlug) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DelUserURLMappings", ctx, tasks)
 	ret0, _ := ret[0].(error)

@@ -2,7 +2,7 @@ package remover
 
 import (
 	"context"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -12,99 +12,132 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
+	b "github.com/patraden/ya-practicum-go-shortly/pkg/batcher"
 )
 
 const (
-	workers         = 2
-	jobsBuffer      = 1000
-	jobsSize        = 50
-	tasksBufferSize = 2 * jobsBuffer
-	jobInterval     = 5 * time.Second
+	batchBuffer  = 1000
+	batchMaxSize = 100
+	batchTimeout = time.Second
 )
 
+// URLRemover is an interface for removing user slugs from the repository.
 type URLRemover interface {
 	RemoveUserSlugs(ctx context.Context, slugs []domain.Slug) error
 }
 
-type AsyncRemover struct {
+// BatchRemover is a concrete implementation of the URLRemover interface
+// that handles the removal of user slugs in batches.
+type BatchRemover struct {
 	repo    repository.URLRepository
-	batcher *Batcher
-	pool    *WorkerPool
+	batcher *b.Batcher
 	log     *zerolog.Logger
-
-	running int32
+	wg      *sync.WaitGroup
 }
 
-func NewAsyncRemover(
-	jobInterval time.Duration,
-	repo repository.URLRepository,
-	log *zerolog.Logger,
-) *AsyncRemover {
-	// it should be parent context but I have not time for that now
-	ctx := context.Background()
+// NewBatchRemover creates a new instance of BatchRemover with the specified repository and logger.
+func NewBatchRemover(repo repository.URLRepository, log *zerolog.Logger) (*BatchRemover, error) {
+	commitFn := func(ctx context.Context, batch b.Batch) {
+		slugs := make([]dto.UserSlug, 0, len(batch))
 
-	wfn := func(j Job) JobResult {
-		err := repo.DelUserURLMappings(ctx, &j.Tasks)
+		for _, op := range batch {
+			if slug, ok := op.Value.(dto.UserSlug); ok {
+				slugs = append(slugs, slug)
+			} else {
+				op.SetError(e.ErrFailedCast)
+			}
+		}
 
-		return JobResult{ID: j.ID, Err: err}
-	}
+		if len(slugs) == 0 {
+			return
+		}
 
-	pool := NewWorkerPool(workers, jobsBuffer, wfn, log)
-	jobCh := pool.JobsChannel()
-	batcher := NewBatcher(jobsSize, jobInterval, tasksBufferSize, jobCh, log)
+		err := repo.DelUserURLMappings(ctx, slugs)
+		batch.SetError(err)
 
-	return &AsyncRemover{
-		repo:    repo,
-		batcher: batcher,
-		pool:    pool,
-		log:     log,
-		running: 0,
-	}
-}
+		select {
+		case <-ctx.Done():
+			log.Info().
+				Int("size", len(batch)).
+				Msg("remover: batch cancelled")
 
-func (r *AsyncRemover) IsRunning() bool {
-	return r.running == 1
-}
-
-func (r *AsyncRemover) Start() {
-	// batcher stops asyncroniously
-	r.batcher.Start()
-	// pool starts syncroniously
-	r.pool.Start()
-	atomic.SwapInt32(&r.running, 1)
-}
-
-func (r *AsyncRemover) Stop(ctx context.Context) {
-	// batcher stops syncroniously
-	r.batcher.Stop()
-	// pool stops syncroniously
-	r.pool.Stop(ctx)
-	atomic.SwapInt32(&r.running, 0)
-}
-
-func (r *AsyncRemover) RemoveUserSlugs(ctx context.Context, slugs []domain.Slug) error {
-	if !r.IsRunning() {
-		r.log.Error().Msg("remover is not running")
-
-		return e.ErrRemoverInternal
-	}
-
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		r.log.Error().Msg("failed to get userID from context")
-
-		return e.ErrRemoverInternal
-	}
-
-	for _, slug := range slugs {
-		userSlug := dto.UserSlug{UserID: userID, Slug: slug}
-		if err := r.batcher.AddTask(userSlug); err != nil {
-			// fail fast for now
-			r.log.Error().Err(err).Msg("failed to submit task to batcher")
-
-			return err
+			return
+		default:
 		}
 	}
 
+	batcher, err := b.New(
+		commitFn,
+		b.WithBufferSize(batchBuffer),
+		b.WithTimeout(batchTimeout),
+		b.WithMaxSize(batchMaxSize),
+		b.WithLogger(log),
+	)
+	if err != nil {
+		return nil, e.ErrRemoverInitBatcher
+	}
+
+	return &BatchRemover{
+		repo:    repo,
+		batcher: batcher,
+		log:     log,
+		wg:      &sync.WaitGroup{},
+	}, nil
+}
+
+// Start initiates the batch processing in a separate goroutine.
+func (r *BatchRemover) Start(ctx context.Context) {
+	r.wg.Add(1)
+
+	go func() {
+		defer r.wg.Done()
+		r.batcher.Batch(ctx)
+	}()
+}
+
+// Stop gracefully stops the batch processor, waiting for all tasks to complete.
+func (r *BatchRemover) Stop(ctx context.Context) {
+	done := make(chan struct{})
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		r.log.Info().
+			Msg("remover: stopped gracefully")
+	case <-ctx.Done():
+		r.log.Error().
+			Msg("remover: shutdown timed out")
+	}
+}
+
+// RemoveUserSlugs removes a list of user slugs asynchronously by batching the requests.
+func (r *BatchRemover) RemoveUserSlugs(ctx context.Context, slugs []domain.Slug) error {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return e.ErrRemoverInternal
+	}
+
+	errCount := 0
+
+	for _, slug := range slugs {
+		userSlug := dto.UserSlug{UserID: userID, Slug: slug}
+		if _, err := r.batcher.Send(ctx, userSlug); err != nil {
+			errCount++
+		}
+	}
+
+	if errCount > 0 {
+		r.log.Error().
+			Int("count", errCount).
+			Msg("remover: some slugs missed from batch")
+
+		return e.ErrRemoverInternal
+	}
+
+	// batch operation allows to block code here by calling op.Wait()
+	// but since requirements specify async deletion, this is skipped
 	return nil
 }

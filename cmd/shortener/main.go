@@ -39,7 +39,13 @@ func main() {
 		cfg.ForceEmptyRepo = true
 	}
 
-	remover := remover.NewAsyncRemover(cfg.DeleteBatchInterval, repo, log)
+	remover, err := remover.NewBatchRemover(repo, log)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("failed to init remover service")
+	}
+
 	srv := server.NewServer(cfg, repo, gen, log, database, remover)
 	stopChan := make(chan os.Signal, 1)
 

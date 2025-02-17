@@ -9,12 +9,14 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
 
+// PingHandler handles database health checks.
 type PingHandler struct {
 	db     *postgres.Database
 	config *config.Config
 	log    *zerolog.Logger
 }
 
+// NewPingHandler creates and returns a new PingHandler.
 func NewPingHandler(db *postgres.Database, config *config.Config, log *zerolog.Logger) *PingHandler {
 	return &PingHandler{
 		db:     db,
@@ -23,6 +25,7 @@ func NewPingHandler(db *postgres.Database, config *config.Config, log *zerolog.L
 	}
 }
 
+// HandleDBPing verifies database connectivity and returns the status.
 func (h *PingHandler) HandleDBPing(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.Ping(r.Context()); err != nil {
 		h.log.
