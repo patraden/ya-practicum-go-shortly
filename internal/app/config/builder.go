@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"log"
-	"reflect"
 	"strings"
 
 	"github.com/caarlos0/env/v6"
@@ -13,66 +12,38 @@ import (
 )
 
 type builder struct {
-	env   *Config
-	flags *Config
-	scope []string
+	cfg *Config
 }
 
 func newBuilder() *builder {
 	return &builder{
-		env:   DefaultConfig(),
-		flags: DefaultConfig(),
-		scope: []string{
-			"ServerAddr",
-			"BaseURL",
-			"FileStoragePath",
-			"DatabaseDSN",
-			"JWTSecret",
-		},
+		cfg: DefaultConfig(),
 	}
 }
 
-func (b *builder) loadEnvConfig() {
-	if err := env.Parse(b.env); err != nil {
+func (b *builder) loadEnv() {
+	if err := env.Parse(b.cfg); err != nil {
 		log.Fatal(e.ErrEnvConfigParse)
 	}
 }
 
-func (b *builder) loadFlagsConfig() {
-	flag.StringVar(&b.flags.ServerAddr, "a", b.flags.ServerAddr, "server address {host}:{port}")
-	flag.StringVar(&b.flags.BaseURL, "b", b.flags.BaseURL, "base url {base url}/{short link}")
-	flag.StringVar(&b.flags.FileStoragePath, "f", b.flags.FileStoragePath, "url storage file path")
-	flag.StringVar(&b.flags.DatabaseDSN, "d", b.flags.DatabaseDSN, "database DSN")
-	flag.BoolVar(&b.flags.ForceEmptyRepo, "force-empty", false, "do not load and preserve repository")
+func (b *builder) loadFlags() {
+	flag.StringVar(&b.cfg.ServerAddr, "a", b.cfg.ServerAddr, "server address {host}:{port}")
+	flag.StringVar(&b.cfg.BaseURL, "b", b.cfg.BaseURL, "base url {base url}/{short link}")
+	flag.StringVar(&b.cfg.FileStoragePath, "f", b.cfg.FileStoragePath, "url storage file path")
+	flag.StringVar(&b.cfg.DatabaseDSN, "d", b.cfg.DatabaseDSN, "database DSN")
+	flag.BoolVar(&b.cfg.ForceEmptyRepo, "force-empty", false, "do not load and preserve repository")
 	flag.Parse()
 }
 
 func (b *builder) getConfig() *Config {
-	cfg := DefaultConfig()
-
-	for _, field := range b.scope {
-		envValue := reflect.ValueOf(b.env).Elem().FieldByName(field)
-		flagValue := reflect.ValueOf(b.flags).Elem().FieldByName(field)
-		cfgValue := reflect.ValueOf(cfg).Elem().FieldByName(field)
-
-		// Prioritize environment variable, then flags, then default.
-		switch {
-		case envValue.String() != cfgValue.String():
-			cfgValue.Set(envValue)
-		case flagValue.String() != cfgValue.String():
-			cfgValue.Set(flagValue)
-		}
-	}
-
-	cfg.ForceEmptyRepo = b.flags.ForceEmptyRepo
-
-	if !utils.IsServerAddress(cfg.ServerAddr) {
+	if !utils.IsServerAddress(b.cfg.ServerAddr) {
 		log.Fatal(e.ErrInvalidConfig)
 	}
 
-	if !strings.HasSuffix(cfg.BaseURL, "/") {
-		cfg.BaseURL += "/"
+	if !strings.HasSuffix(b.cfg.BaseURL, "/") {
+		b.cfg.BaseURL += "/"
 	}
 
-	return cfg
+	return b.cfg
 }

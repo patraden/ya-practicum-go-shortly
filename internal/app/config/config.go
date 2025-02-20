@@ -13,7 +13,6 @@ const (
 	defaultWriteTimeout        = 10 * time.Second  // Maximum duration to write response
 	defaultIdleTimeout         = 120 * time.Second // Maximum duration for idle connections
 	defaultURLSize             = 8
-	defaultBatchingInterval    = time.Second
 )
 
 // Config holds the app configuration settings, which can be set through environment variables or flags.
@@ -30,7 +29,6 @@ type Config struct {
 	ServerReadHeaderTimeout time.Duration
 	ServerWriteTimeout      time.Duration
 	ServerIdleTimeout       time.Duration
-	DeleteBatchInterval     time.Duration
 	ForceEmptyRepo          bool
 }
 
@@ -49,7 +47,6 @@ func DefaultConfig() *Config {
 		ServerReadHeaderTimeout: defaultReadHeaderTimeout,
 		ServerWriteTimeout:      defaultWriteTimeout,
 		ServerIdleTimeout:       defaultIdleTimeout,
-		DeleteBatchInterval:     defaultBatchingInterval,
 		ForceEmptyRepo:          false,
 	}
 }
@@ -57,8 +54,8 @@ func DefaultConfig() *Config {
 // LoadConfig initializes and returns a Config instance.
 func LoadConfig() *Config {
 	builder := newBuilder()
-	builder.loadEnvConfig()
-	builder.loadFlagsConfig()
+	builder.loadEnv()
+	builder.loadFlags()
 	cfg := builder.getConfig()
 
 	return cfg
