@@ -343,7 +343,7 @@ func TestDelUserURLMappingsSuccess(t *testing.T) {
 	mockPool.ExpectExec(`UPDATE shortener.urlmapping`).WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 	mockPool.ExpectCommit()
 
-	err = repo.DelUserURLMappings(ctx, &userSlugTasks)
+	err = repo.DelUserURLMappings(ctx, userSlugTasks)
 	require.NoError(t, err)
 
 	err = mockPool.ExpectationsWereMet()
@@ -373,7 +373,7 @@ func TestDelUserURLMappingsFailure(t *testing.T) {
 	mockPool.ExpectRollback()
 
 	// Call the method under test
-	err = repo.DelUserURLMappings(ctx, &userSlugTasks)
+	err = repo.DelUserURLMappings(ctx, userSlugTasks)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error filling temp table")
 

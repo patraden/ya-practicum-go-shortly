@@ -9,6 +9,8 @@ import (
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
+// EncoderGzip returns a Gzip encoder with the specified compression level
+// for writing compressed data to the provided writer.
 func EncoderGzip(w io.Writer, level int) io.Writer {
 	gw, err := gzip.NewWriterLevel(w, level)
 	if err != nil {
@@ -18,6 +20,8 @@ func EncoderGzip(w io.Writer, level int) io.Writer {
 	return gw
 }
 
+// EncoderDeflate returns a Deflate encoder with the specified compression level
+// for writing compressed data to the provided writer.
 func EncoderDeflate(w io.Writer, level int) io.Writer {
 	dw, err := flate.NewWriter(w, level)
 	if err != nil {
@@ -27,6 +31,7 @@ func EncoderDeflate(w io.Writer, level int) io.Writer {
 	return dw
 }
 
+// DecoderGzip returns a Gzip decompressor for reading compressed data from the provided reader.
 func DecoderGzip(r io.Reader) io.ReadCloser {
 	if r == nil {
 		return io.NopCloser(bytes.NewReader([]byte{}))
@@ -40,11 +45,13 @@ func DecoderGzip(r io.Reader) io.ReadCloser {
 	return dr
 }
 
+// DecoderDeflate returns a Deflate decompressor for reading compressed data from the provided reader.
 func DecoderDeflate(r io.Reader) io.ReadCloser {
 	return flate.NewReader(r)
 }
 
-// helper for compression tests.
+// Compress compresses the given data according to the specified encoding format (either "deflate" or "gzip").
+// It returns the compressed data or an error if the compression process fails.
 func Compress(data []byte, encoding string) ([]byte, error) {
 	var buf bytes.Buffer
 	var encoder func(w io.Writer, level int) io.Writer
@@ -83,7 +90,8 @@ func Compress(data []byte, encoding string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// helper for compression tests.
+// Decompress decompresses the given data according to the specified encoding format (either "deflate" or "gzip").
+// It returns the decompressed data or an error if the decompression process fails.
 func Decompress(data []byte, encoding string) ([]byte, error) {
 	var decoder func(r io.Reader) io.ReadCloser
 

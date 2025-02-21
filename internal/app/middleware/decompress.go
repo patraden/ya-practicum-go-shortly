@@ -1,7 +1,7 @@
-// Decompressor approach is inspired
-// by https://github.com/go-chi/chi/blob/master/middleware/compress.go.
-// and implemneted in a simplistic form for now.
-
+// Package middleware provides the Decompress middleware to handle decompression
+// of request bodies based on the "Content-Encoding" header.
+// It supports decompressing "deflate" and "gzip" encodings using a pooled decoder approach.
+// Approach is inspired by https://github.com/go-chi/chi/blob/master/middleware/compress.go.
 package middleware
 
 import (
@@ -13,18 +13,24 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
+// Decompress is a middleware that decompresses request bodies based on the
+// "Content-Encoding" header. It uses a pooled decoder for supported encodings.
 func Decompress() func(next http.Handler) http.Handler {
 	decompressor := NewDecompressor()
 
 	return decompressor.Handler
 }
 
+// DecodeFunc defines the function signature for decompressing an io.Reader.
 type DecodeFunc func(io.Reader) io.ReadCloser
 
+// Decompressor is a middleware that manages decompression for various encodings.
 type Decompressor struct {
 	pooledDecoders map[string]*sync.Pool
 }
 
+// NewDecompressor creates a new Decompressor instance, initializes the pool of decoders,
+// and registers support for "deflate" and "gzip" encodings.
 func NewDecompressor() *Decompressor {
 	d := &Decompressor{
 		pooledDecoders: make(map[string]*sync.Pool),
@@ -36,6 +42,8 @@ func NewDecompressor() *Decompressor {
 	return d
 }
 
+// SetDecoder registers a decoder function for a specific encoding type.
+// If a decoder is already registered for the encoding, it is replaced.
 func (d *Decompressor) SetDecoder(encoding string, fn DecodeFunc) {
 	encoding = strings.ToLower(encoding)
 
@@ -73,6 +81,9 @@ func (d *Decompressor) selectDecoder(h http.Header, r io.ReadCloser) (io.ReadClo
 	return nil, encoded
 }
 
+// Handler is the HTTP middleware handler that decompresses the request body
+// if the "Content-Encoding" header indicates compression. It updates the request's body
+// to the decompressed version and passes it along to the next handler.
 func (d *Decompressor) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		decoder, _ := d.selectDecoder(r.Header, r.Body)
