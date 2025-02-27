@@ -4,6 +4,8 @@ linters:
   enable-all: true
   disable:
     - gomnd
+    - gochecknoglobals
+    - nilnil
     - execinquery
     - exportloopref
     - tparallel # redundant of paralleltest, which is configurable
@@ -70,6 +72,7 @@ linters-settings:
       - '^github\.com/jackc/pgx/v5\.TxOptions$'
       - '^github\.com/jackc/pgx/v5/pgconn\.PgError$'
       - '^github\.com/golang-jwt/jwt/v4\.RegisteredClaims$'
+      - '^golang\.org/x/tools/go/analysis\.Analyzer$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/config\.Config$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
