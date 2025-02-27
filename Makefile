@@ -50,6 +50,7 @@ test:
 .PHONY: clean
 clean:
 	@rm -f ./cmd/shortener/shortener
+	@rm -f ./cmd/staticlint/staticlint
 	@rm -f ./coverage.out
 	@rm -f ./data/service_storage.json
 
@@ -171,3 +172,20 @@ pg_stop:
 .PHONY: pg_connect
 pg_connect:
 	@psql -h 127.0.0.1 -p 5432 -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+
+.PHONY: staticlint
+staticlint:
+	@echo "Running staticlint..."
+	@./cmd/staticlint/staticlint ./...
+
+
+.PHONY: staticlint\:help
+staticlint\:help:
+	@./cmd/staticlint/staticlint --help
+
+.PHONY: staticlint\:build
+staticlint\:build:
+	@echo "Building staticcheck binary..."
+	@go build -ldflags="-s -w" -o cmd/staticlint/staticlint ./cmd/staticlint/
+	@chmod +x cmd/staticlint/staticlint
