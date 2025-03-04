@@ -14,6 +14,10 @@ CONTAINER_POSTGRES ?= ya_postgres
 POSTGRES_USER ?= postgres
 POSTGRES_PASSWORD ?= postgres
 POSTGRES_DB ?= praktikum
+BUILD_DATE := $(shell date -u +"%d.%m.%Y")
+BUILD_COMMIT := $(shell git rev-parse --short HEAD)
+BUILD_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "N/A")
+VERSION_PACKAGE := github.com/patraden/ya-practicum-go-shortly/internal/app/version
 
 .PHONY: vet
 vet:
@@ -57,7 +61,15 @@ clean:
 
 .PHONY: build
 build: clean
-	@go build -buildvcs=false -o cmd/shortener/shortener ./cmd/shortener
+	@go build \
+		-ldflags="-X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
+		-o cmd/shortener/shortener ./cmd/shortener
+
+.PHONY: run
+run: 
+	@go run \
+		-ldflags="-X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
+		cmd/shortener/main.go
 
 
 .PHONY: shortenertest
