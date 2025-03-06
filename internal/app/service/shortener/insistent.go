@@ -71,18 +71,17 @@ func (s *InsistentShortener) generateSlugWithBackoff(ctx context.Context, operat
 // It retries generating a slug in case of collisions.
 func (s *InsistentShortener) ShortenURL(ctx context.Context, original domain.OriginalURL) (domain.Slug, error) {
 	var slug domain.Slug
-	var err error
 
 	operation := func() error {
 		slug = s.urlGenerator.GenerateSlug(ctx, original)
-		_, err := s.repo.GetURLMapping(ctx, slug)
+		_, errRepo := s.repo.GetURLMapping(ctx, slug)
 
-		if errors.Is(err, e.ErrSlugNotFound) {
+		if errors.Is(errRepo, e.ErrSlugNotFound) {
 			return nil
 		}
 
-		if err != nil {
-			return backoff.Permanent(err)
+		if errRepo != nil {
+			return backoff.Permanent(errRepo)
 		}
 
 		return e.ErrSlugCollision

@@ -16,6 +16,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/version"
 )
 
 // Server represents the HTTP server for the URL shortening service.
@@ -26,6 +27,7 @@ type Server struct {
 	log           *zerolog.Logger
 	remover       *remover.BatchRemover // this is really bad but I have no time :( now
 	removerCancel func()
+	version       *version.Version
 }
 
 // NewServer creates a new Server instance with the provided configuration,
@@ -43,6 +45,7 @@ func NewServer(
 	phandler := handler.NewPingHandler(db, config, log)
 	dhandler := handler.NewDeleteHandler(remover, log)
 	router := handler.NewRouter(shandler, phandler, dhandler, log, config)
+	version := version.NewVersion()
 
 	return &Server{
 		Server: &http.Server{
@@ -57,6 +60,7 @@ func NewServer(
 		remover:       remover,
 		removerCancel: func() {},
 		log:           log,
+		version:       version,
 	}
 }
 
@@ -86,6 +90,9 @@ func (s *Server) Start() {
 	s.removerCancel = cancel
 
 	s.log.Info().Msg("Server started")
+	s.log.Info().Msgf("Build version: %s", s.version.Version())
+	s.log.Info().Msgf("Build date: %s", s.version.Date())
+	s.log.Info().Msgf("Build commit: %s", s.version.Commit())
 }
 
 // WaitForShutdown waits for a shutdown signal and handles graceful shutdown of the server and batch remover service.

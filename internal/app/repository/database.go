@@ -217,10 +217,10 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 		}
 
 		defer func() {
-			if err := trx.Commit(ctx); err != nil {
+			if errCom := trx.Commit(ctx); errCom != nil {
 				repo.log.
 					Error().
-					Err(err).
+					Err(errCom).
 					Msg("failed to commit batch tx")
 			}
 		}()
@@ -241,10 +241,10 @@ func (repo *DBURLRepository) AddURLMappingBatch(ctx context.Context, batch *[]do
 
 		rowsAffected, err := txQueries.AddURLMappingBatchCopy(ctx, batchParams)
 		if err != nil {
-			if err := trx.Rollback(ctx); err != nil {
+			if errRB := trx.Rollback(ctx); errRB != nil {
 				repo.log.
 					Error().
-					Err(err).
+					Err(errRB).
 					Msg("failed to rollback batch tx")
 
 				return e.Wrap("failed to rollback batch tx", err, errLabel)

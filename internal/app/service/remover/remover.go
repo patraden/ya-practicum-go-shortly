@@ -63,6 +63,7 @@ func NewBatchRemover(repo repository.URLRepository, log *zerolog.Logger) (*Batch
 
 			return
 		default:
+			break
 		}
 	}
 
