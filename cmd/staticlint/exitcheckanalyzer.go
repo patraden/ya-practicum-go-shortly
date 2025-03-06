@@ -27,6 +27,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		ast.Inspect(file, func(n ast.Node) bool {
+			if funcDecl, ok := n.(*ast.FuncDecl); ok {
+				return funcDecl.Name.Name == "main" && funcDecl.Recv == nil
+			}
+
 			callExpr, ok := n.(*ast.CallExpr)
 			if !ok {
 				return true

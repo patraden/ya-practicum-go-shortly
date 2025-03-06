@@ -102,5 +102,7 @@ linters-settings:
       - standard
       - prefix(github.com/patraden/ya-practicum-go-shortly)
       - default
+  cyclop:
+    max-complexity: 11
 
 

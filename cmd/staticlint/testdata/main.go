@@ -7,7 +7,7 @@ import (
 
 func callExit() {
 	fmt.Println("Exiting using func call")
-	os.Exit(4) // want "direct call to os.Exit found in ..."
+	os.Exit(4) // indirect call from main function (should be ignored)
 }
 
 func main() {
