@@ -14,6 +14,10 @@ CONTAINER_POSTGRES ?= ya_postgres
 POSTGRES_USER ?= postgres
 POSTGRES_PASSWORD ?= postgres
 POSTGRES_DB ?= praktikum
+BUILD_DATE := $(shell date -u +"%d.%m.%Y")
+BUILD_COMMIT := $(shell git rev-parse --short HEAD)
+BUILD_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "N/A")
+VERSION_PACKAGE := github.com/patraden/ya-practicum-go-shortly/internal/app/version
 
 .PHONY: vet
 vet:
@@ -50,13 +54,22 @@ test:
 .PHONY: clean
 clean:
 	@rm -f ./cmd/shortener/shortener
+	@rm -f ./cmd/staticlint/staticlint
 	@rm -f ./coverage.out
 	@rm -f ./data/service_storage.json
 
 
 .PHONY: build
 build: clean
-	@go build -buildvcs=false -o cmd/shortener/shortener ./cmd/shortener
+	@go build \
+		-ldflags="-X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
+		-o cmd/shortener/shortener ./cmd/shortener
+
+.PHONY: run
+run: 
+	@go run \
+		-ldflags="-X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
+		cmd/shortener/main.go
 
 
 .PHONY: shortenertest
@@ -171,3 +184,20 @@ pg_stop:
 .PHONY: pg_connect
 pg_connect:
 	@psql -h 127.0.0.1 -p 5432 -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+
+.PHONY: staticlint
+staticlint:
+	@echo "Running staticlint..."
+	@./cmd/staticlint/staticlint ./...
+
+
+.PHONY: staticlint\:help
+staticlint\:help:
+	@./cmd/staticlint/staticlint --help
+
+.PHONY: staticlint\:build
+staticlint\:build:
+	@echo "Building staticcheck binary..."
+	@go build -ldflags="-s -w" -o cmd/staticlint/staticlint ./cmd/staticlint/
+	@chmod +x cmd/staticlint/staticlint
