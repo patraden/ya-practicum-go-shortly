@@ -16,17 +16,23 @@ import (
 )
 
 func Example() {
-	// get http client
 	cfg := config.DefaultConfig()
 	cfg.ForceEmptyRepo = true
+
+	// get http client
+	reqTimeout := 5 * time.Second
 	client := http.DefaultClient
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 
 	defer cancel()
 
 	// start application
+	startTimeout := 2 * time.Second
 	app := app.App(cfg, zerolog.Disabled)
+
 	go func() { app.Run() }()
+
+	time.Sleep(startTimeout)
 
 	// send request
 	req, err := http.NewRequestWithContext(
