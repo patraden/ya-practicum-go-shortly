@@ -91,7 +91,7 @@ func fxAppInvoke(
 			if !config.ForceEmptyRepo {
 				err := stateManager.RestoreFromFile()
 				if err != nil && !errors.Is(err, e.ErrStateNotmplemented) {
-					return err
+					log.Error().Err(err).Msg("State restoration error")
 				}
 			}
 
@@ -117,7 +117,7 @@ func fxAppInvoke(
 			if !config.ForceEmptyRepo {
 				err := stateManager.StoreToFile()
 				if err != nil && !errors.Is(err, e.ErrStateNotmplemented) {
-					return err
+					log.Error().Err(err).Msg("State preservation error")
 				}
 			}
 

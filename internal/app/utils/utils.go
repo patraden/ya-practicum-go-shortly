@@ -46,8 +46,8 @@ func RandString(n int) string {
 }
 
 // RandInt generates a random in interval [0, abs(max)).
-func RandInt(max int) int {
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+func RandInt(mx int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(mx)))
 	if err != nil {
 		return 0
 	}
