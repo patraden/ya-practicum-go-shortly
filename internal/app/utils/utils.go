@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"net/url"
 	"strings"
 	"time"
@@ -9,7 +10,10 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
-const errLabel = "utils"
+const (
+	errLabel = "utils"
+	alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
 
 // IsServerAddress checks if the provided address is a valid server address with the format "server:port".
 func IsServerAddress(addr string) bool {
@@ -27,15 +31,28 @@ func LinearBackoff(maxElapsedTime time.Duration, interval time.Duration) *backof
 }
 
 // RandomString generates a random string of length n consisting of uppercase and lowercase letters.
-func RandomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, n)
+func RandString(n int) string {
+	bytes := make([]byte, n)
 
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+	if _, err := rand.Read(bytes); err != nil {
+		return ``
 	}
 
-	return string(b)
+	for i := range bytes {
+		bytes[i] = alphabet[bytes[i]%byte(len(alphabet))]
+	}
+
+	return string(bytes)
+}
+
+// RandInt generates a random in interval [0, abs(max)).
+func RandInt(max int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		return 0
+	}
+
+	return int(n.Int64())
 }
 
 // RandURL generates a random URL with a random domain, path, and query parameters.
@@ -45,20 +62,21 @@ func RandURL() string {
 	tldLen := 3
 	schemaOpt := 2
 	paramLen := 5
-
 	schema := "http"
-	if rand.Intn(schemaOpt) == 0 {
+
+	coin := RandInt(schemaOpt)
+	if coin == 0 {
 		schema = "https"
 	}
 
 	u := &url.URL{
 		Scheme: schema,
-		Host:   RandomString(domainLen) + "." + RandomString(tldLen),
-		Path:   "resource/" + RandomString(pathLen),
+		Host:   RandString(domainLen) + "." + RandString(tldLen),
+		Path:   "resource/" + RandString(pathLen),
 	}
 
 	q := u.Query()
-	q.Set("id", RandomString(paramLen))
+	q.Set("id", RandString(paramLen))
 	u.RawQuery = q.Encode()
 
 	return u.String()

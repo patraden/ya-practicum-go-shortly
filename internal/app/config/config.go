@@ -20,8 +20,11 @@ type Config struct {
 	ServerAddr              string `env:"SERVER_ADDRESS"`
 	BaseURL                 string `env:"BASE_URL"`
 	FileStoragePath         string `env:"FILE_STORAGE_PATH"`
+	TLSKeyPath              string `env:"TLC_KEY_PATH"`
+	TLSCertPath             string `env:"TLC_CERT_PATH"`
 	DatabaseDSN             string `env:"DATABASE_DSN"`
 	JWTSecret               string `env:"JWT_SECRET"`
+	EnableHTTPS             bool   `env:"ENABLE_HTTPS"`
 	URLGenTimeout           time.Duration
 	URLGenRetryInterval     time.Duration
 	URLsize                 int
@@ -38,8 +41,11 @@ func DefaultConfig() *Config {
 		ServerAddr:              `localhost:8080`,
 		BaseURL:                 `http://localhost:8080/`,
 		FileStoragePath:         `data/service_storage.json`,
+		TLSKeyPath:              `/etc/ssl/private/shortener-key.pem`,
+		TLSCertPath:             `/etc/ssl/certs/shortener-cert.pem`,
 		DatabaseDSN:             ``,
 		JWTSecret:               `d1a58c288a0226998149277b14993f6c73cf44ff9df3de548df4df25a13b251a`,
+		EnableHTTPS:             false,
 		URLGenTimeout:           defaultURLGenTimeout,
 		URLGenRetryInterval:     defaultURLGenRetryInterval,
 		URLsize:                 defaultURLSize,

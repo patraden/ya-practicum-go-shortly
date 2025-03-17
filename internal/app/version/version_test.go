@@ -3,11 +3,16 @@ package version_test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
+
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/version"
 )
 
 func TestVersionMethods(t *testing.T) {
 	t.Parallel()
+
+	log := logger.NewLogger(zerolog.Disabled).GetLogger()
 
 	tests := []struct {
 		name        string
@@ -18,7 +23,7 @@ func TestVersionMethods(t *testing.T) {
 	}{
 		{
 			name:        "Default Version",
-			version:     version.NewVersion(),
+			version:     version.NewVersion(log),
 			wantVersion: "N/A",
 			wantDate:    "N/A",
 			wantCommit:  "N/A",

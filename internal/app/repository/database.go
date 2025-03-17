@@ -15,6 +15,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 	q "github.com/patraden/ya-practicum-go-shortly/internal/app/repository/dbqueries"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
@@ -329,4 +330,14 @@ func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto
 	}
 
 	return nil
+}
+
+// CreateMemento creates a memento of the current state of the repository.
+func (repo *DBURLRepository) CreateMemento() (*memento.Memento, error) {
+	return nil, e.ErrStateNotmplemented
+}
+
+// RestoreMemento restores the state of the repository from the given memento.
+func (repo *DBURLRepository) RestoreMemento(_ *memento.Memento) error {
+	return e.ErrStateNotmplemented
 }

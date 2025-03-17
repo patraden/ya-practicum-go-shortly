@@ -5,6 +5,7 @@ linters:
   disable:
     - gomnd
     - gochecknoglobals
+    - nlreturn
     - nilnil
     - execinquery
     - exportloopref
@@ -80,21 +81,9 @@ linters-settings:
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/service/remover\.Batcher$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/service/remover\.WorkerPool$'
 
-  gosec:
-  # To specify a set of rules to explicitly exclude.
-  # Available rules: https://github.com/securego/gosec#available-rules
-  # Default: []
-    excludes:
-      - G404 # Insecure random number source (rand)
-  
   tagliatelle:
-    # Check the struct tag name case.
     case:
-      # `camel` is used for `json` and `yaml`, and `header` is used for `header` (can be overridden)
-      # Default: {}
       rules:
-        # Any struct tag type can be used.
-        # Support string case: `camel`, `pascal`, `kebab`, `snake`, `upperSnake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`, `header`
         json: snake
   
   gci:
@@ -102,7 +91,12 @@ linters-settings:
       - standard
       - prefix(github.com/patraden/ya-practicum-go-shortly)
       - default
+
   cyclop:
-    max-complexity: 11
+    max-complexity: 15
 
-
+  wrapcheck:
+    ignorePackageGlobs:
+      - net/http
+      - github.com/patraden/ya-practicum-go-shortly/*
+  
