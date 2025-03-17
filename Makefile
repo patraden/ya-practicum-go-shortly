@@ -4,13 +4,17 @@ BINARY_PATH ?= cmd/shortener/shortener
 TEMP_FILE ?= data/service_storage.json
 DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable
 
+SERVER_PORT ?= 8443
+SERVER_ADDRESS ?= 0.0.0.0:${SERVER_PORT}
+BASE_URL ?= https://localhost:${SERVER_PORT}/
+ENABLE_HTTPS ?= true
 DOCKER := $(shell which docker)
+DOCKER_COMPOSE_PATH := ./deployments/docker-compose.yml
 CONTAINER_MYSQL ?= ya_mysql
 MYSQL_DATABASE ?= mysql
 MYSQL_USER ?= mysql
 MYSQL_PASSWORD ?= mysql
 MYSQL_ROOT_PASSWORD ?= mysql
-CONTAINER_POSTGRES ?= ya_postgres
 POSTGRES_USER ?= postgres
 POSTGRES_PASSWORD ?= postgres
 POSTGRES_DB ?= praktikum
@@ -62,7 +66,7 @@ clean:
 .PHONY: build
 build: clean
 	@go build \
-		-ldflags="-X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
+		-ldflags="-s -w -X $(VERSION_PACKAGE).buildVersion=$(BUILD_VERSION) -X $(VERSION_PACKAGE).buildDate=$(BUILD_DATE) -X $(VERSION_PACKAGE).buildCommit=$(BUILD_COMMIT)" \
 		-o cmd/shortener/shortener ./cmd/shortener
 
 .PHONY: run
@@ -164,25 +168,17 @@ mysql_stop:
 mysql_connect:
 	@mysql -h 127.0.0.1 -P 3306 -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) $(MYSQL_DATABASE)
 
-.PHONY: pg
-pg:
-	@$(DOCKER) run --name $(CONTAINER_POSTGRES) \
-    -e POSTGRES_USER=$(POSTGRES_USER) \
-    -e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-    -e POSTGRES_DB=$(POSTGRES_DB) \
-    -p 5432:5432 \
-    -d postgres:15.1
+.PHONY: docker\:pg
+docker\:pg:
+	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	POSTGRES_USER=$(POSTGRES_USER) \
+	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	POSTGRES_DB=$(POSTGRES_DB) \
+	SERVER_PORT=$(SERVER_PORT) \
+	docker-compose -f $(DOCKER_COMPOSE_PATH) up -d postgres
 
-.PHONY: pg_start
-pg_start:
-	@$(DOCKER) start $(CONTAINER_POSTGRES)
-
-.PHONY: pg_stop
-pg_stop:
-	@$(DOCKER) stop $(CONTAINER_POSTGRES)
-
-.PHONY: pg_connect
-pg_connect:
+.PHONY: pg\:connect
+pg\:connect:
 	@psql -h 127.0.0.1 -p 5432 -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 
 
@@ -201,3 +197,58 @@ staticlint\:build:
 	@echo "Building staticcheck binary..."
 	@go build -ldflags="-s -w" -o cmd/staticlint/staticlint ./cmd/staticlint/
 	@chmod +x cmd/staticlint/staticlint
+
+
+.PHONY: docker\:up 
+docker\:up:
+	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	BASE_URL=$(BASE_URL) \
+	FILE_STORAGE_PATH=/app/data/service_storage.json \
+	ENABLE_HTTPS=$(ENABLE_HTTPS) \
+	POSTGRES_USER=$(POSTGRES_USER) \
+	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	POSTGRES_DB=$(POSTGRES_DB) \
+	SERVER_PORT=$(SERVER_PORT) \
+	docker-compose -f $(DOCKER_COMPOSE_PATH) up -d
+
+.PHONY: docker\:down
+docker\:down:
+	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	BASE_URL=$(BASE_URL) \
+	FILE_STORAGE_PATH=/app/data/service_storage.json \
+	ENABLE_HTTPS=$(ENABLE_HTTPS) \
+	POSTGRES_USER=$(POSTGRES_USER) \
+	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	POSTGRES_DB=$(POSTGRES_DB) \
+	SERVER_PORT=$(SERVER_PORT) \
+	docker-compose -f $(DOCKER_COMPOSE_PATH) down -v
+
+.PHONY: docker\:stop
+docker\:stop:
+	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	BASE_URL=$(BASE_URL) \
+	FILE_STORAGE_PATH=/app/data/service_storage.json \
+	ENABLE_HTTPS=$(ENABLE_HTTPS) \
+	POSTGRES_USER=$(POSTGRES_USER) \
+	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	POSTGRES_DB=$(POSTGRES_DB) \
+	SERVER_PORT=$(SERVER_PORT) \
+	docker-compose -f $(DOCKER_COMPOSE_PATH) stop
+
+.PHONY: docker\:build
+docker\:build: docker\:down
+	@BUILD_DATE=$(BUILD_DATE) \
+	BUILD_COMMIT=$(BUILD_COMMIT) \
+	BUILD_VERSION=$(BUILD_VERSION) \
+	VERSION_PACKAGE=$(VERSION_PACKAGE) \
+	POSTGRES_USER=$(POSTGRES_USER) \
+	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	POSTGRES_DB=$(POSTGRES_DB) \
+	SERVER_PORT=$(SERVER_PORT) \
+	docker-compose -f $(DOCKER_COMPOSE_PATH) build \
+		--build-arg VERSION_PACKAGE=$(VERSION_PACKAGE) \
+		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+		--no-cache
+	$(MAKE) docker\:up

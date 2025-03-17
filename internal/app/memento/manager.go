@@ -40,7 +40,7 @@ func NewStateManager(config *config.Config, originator Originator, log *zerolog.
 // RestoreFromState restores the state of the system from a given Memento.
 func (sm *StateManager) RestoreFromState(state *Memento) error {
 	if err := sm.originator.RestoreMemento(state); err != nil {
-		return e.ErrStateRestore
+		return err
 	}
 
 	return nil
@@ -48,6 +48,10 @@ func (sm *StateManager) RestoreFromState(state *Memento) error {
 
 // RestoreFromFile restores the state from a file stored at the configured file path.
 func (sm *StateManager) RestoreFromFile() error {
+	sm.log.Info().
+		Str("file_storage_path", sm.config.FileStoragePath).
+		Msg("restoring state from file")
+
 	r, err := NewReader(sm.config.FileStoragePath, sm.log)
 	if err != nil {
 		return err
@@ -60,7 +64,7 @@ func (sm *StateManager) RestoreFromFile() error {
 	}
 
 	if err := sm.originator.RestoreMemento(state); err != nil {
-		return e.ErrStateRestore
+		return err
 	}
 
 	return nil
@@ -68,6 +72,10 @@ func (sm *StateManager) RestoreFromFile() error {
 
 // StoreToFile stores the current state to the file at the configured file path.
 func (sm *StateManager) StoreToFile() error {
+	sm.log.Info().
+		Str("file_storage_path", sm.config.FileStoragePath).
+		Msg("storing state to file")
+
 	w, err := NewWriter(sm.config.FileStoragePath, sm.log)
 	if err != nil {
 		return err
@@ -76,7 +84,7 @@ func (sm *StateManager) StoreToFile() error {
 
 	state, err := sm.originator.CreateMemento()
 	if err != nil {
-		return e.ErrStateCreate
+		return err
 	}
 
 	err = w.SaveState(state)
