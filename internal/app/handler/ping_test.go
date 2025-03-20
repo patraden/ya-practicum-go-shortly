@@ -19,7 +19,7 @@ import (
 func TestHandleDBPing(t *testing.T) {
 	t.Parallel()
 
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	log := logger.NewLogger(zerolog.Disabled).GetLogger()
 	mockPool, err := pgxmock.NewPool()
 	require.NoError(t, err)
 
@@ -43,7 +43,7 @@ func TestHandleDBPing(t *testing.T) {
 func TestHandleDBPingFail(t *testing.T) {
 	t.Parallel()
 
-	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	log := logger.NewLogger(zerolog.Disabled).GetLogger()
 	mockPool, err := pgxmock.NewPool()
 	require.NoError(t, err)
 

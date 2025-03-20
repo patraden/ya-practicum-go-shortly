@@ -1,0 +1,5 @@
+{
+  "enable_https": true,
+  "tlc_key_path": "/etc/ssl/private/shortener-key.pem",
+  "tlc_cert_path": "/etc/ssl/certs/shortener-cert.pem"
+}

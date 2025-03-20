@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
 
@@ -24,6 +25,11 @@ func NewDatabase(log *zerolog.Logger, connString string) *Database {
 		ConnPool:   nil,
 		Log:        log,
 	}
+}
+
+// New creates a new instance of the Database struct with the provided logger and config.
+func New(log *zerolog.Logger, config *config.Config) *Database {
+	return NewDatabase(log, config.DatabaseDSN)
 }
 
 // WithPool assigns a pre-existing connection pool to the Database instance.
