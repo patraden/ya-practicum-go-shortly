@@ -41,20 +41,24 @@ func TestVersionMethods(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, ttest := range tests {
+		t.Run(ttest.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := tt.version.Version(); got != tt.wantVersion {
-				t.Errorf("Version() = %q, want %q", got, tt.wantVersion)
+			if got := ttest.version.Version(); got != ttest.wantVersion {
+				t.Errorf("Version() = %q, want %q", got, ttest.wantVersion)
 			}
 
-			if got := tt.version.Date(); got != tt.wantDate {
-				t.Errorf("Date() = %q, want %q", got, tt.wantDate)
+			if got := ttest.version.Date(); got != ttest.wantDate {
+				t.Errorf("Date() = %q, want %q", got, ttest.wantDate)
 			}
 
-			if got := tt.version.Commit(); got != tt.wantCommit {
-				t.Errorf("Commit() = %q, want %q", got, tt.wantCommit)
+			if got := ttest.version.Commit(); got != ttest.wantCommit {
+				t.Errorf("Commit() = %q, want %q", got, ttest.wantCommit)
+			}
+
+			if ttest.name == "Default Version" {
+				ttest.version.Log()
 			}
 		})
 	}

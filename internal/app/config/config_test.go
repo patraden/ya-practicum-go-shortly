@@ -5,6 +5,10 @@ import (
 	"os"
 	"testing"
 
+	easyjson "github.com/mailru/easyjson"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 )
 
@@ -101,4 +105,32 @@ func TestLoadConfigPriorityOrder(t *testing.T) {
 	if !cfg.EnableHTTPS {
 		t.Errorf("Expected EnableHTTPS to be true, got false")
 	}
+}
+
+func TestLoadConfigSaveAsFile(t *testing.T) {
+	t.Parallel()
+
+	originalCfg := config.DefaultConfig()
+
+	jsonData, err := easyjson.Marshal(originalCfg)
+	require.NoError(t, err, "failed to marshal config")
+
+	tmpFile, err := os.CreateTemp("", "config-*.json")
+	require.NoError(t, err, "failed to create temp file")
+
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.Write(jsonData)
+	require.NoError(t, err, "failed to write config to file")
+
+	tmpFile.Close()
+
+	data, err := os.ReadFile(tmpFile.Name())
+	require.NoError(t, err, "failed to read config file")
+
+	var loadedCfg config.Config
+	err = easyjson.Unmarshal(data, &loadedCfg)
+	require.NoError(t, err, "failed to unmarshal config")
+
+	assert.Equal(t, *originalCfg, loadedCfg, "config mismatch after unmarshaling")
 }

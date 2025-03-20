@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/middleware"
 )
 
 // HTTP router.
-func NewRouter(handlers ...Handler) http.Handler {
+func NewRouter(log *zerolog.Logger, handlers ...Handler) http.Handler {
 	router := chi.NewRouter()
 
 	// Apply common middleware to all routes
@@ -17,6 +18,7 @@ func NewRouter(handlers ...Handler) http.Handler {
 	router.Use(middleware.StripSlashes())
 	router.Use(middleware.Compress())
 	router.Use(middleware.Decompress())
+	router.Use(middleware.Logger(log))
 
 	// Register handlers
 	for _, h := range handlers {

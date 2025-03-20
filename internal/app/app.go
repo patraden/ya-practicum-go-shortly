@@ -62,7 +62,7 @@ func App(appCfg *config.Config, logLevel zerolog.Level) *fx.App {
 			fx.Annotate(handler.NewPingHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.NewDeleteHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.InsistentShortenerHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
-			fx.Annotate(handler.NewRouter, fx.ParamTags(`group:"handlers"`)),
+			fx.Annotate(handler.NewRouter, fx.ParamTags(``, `group:"handlers"`)),
 		),
 		fx.Provide(
 			func(r repository.URLRepository) memento.Originator { return r },
