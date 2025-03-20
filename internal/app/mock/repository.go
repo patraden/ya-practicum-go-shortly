@@ -17,6 +17,7 @@ import (
 
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
+	memento "github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 )
 
 // MockURLRepository is a mock of URLRepository interface.
@@ -72,6 +73,21 @@ func (mr *MockURLRepositoryMockRecorder) AddURLMappingBatch(ctx, batch any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddURLMappingBatch", reflect.TypeOf((*MockURLRepository)(nil).AddURLMappingBatch), ctx, batch)
 }
 
+// CreateMemento mocks base method.
+func (m *MockURLRepository) CreateMemento() (*memento.Memento, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMemento")
+	ret0, _ := ret[0].(*memento.Memento)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateMemento indicates an expected call of CreateMemento.
+func (mr *MockURLRepositoryMockRecorder) CreateMemento() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMemento", reflect.TypeOf((*MockURLRepository)(nil).CreateMemento))
+}
+
 // DelUserURLMappings mocks base method.
 func (m *MockURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto.UserSlug) error {
 	m.ctrl.T.Helper()
@@ -114,4 +130,18 @@ func (m *MockURLRepository) GetUserURLMappings(ctx context.Context, user domain.
 func (mr *MockURLRepositoryMockRecorder) GetUserURLMappings(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserURLMappings", reflect.TypeOf((*MockURLRepository)(nil).GetUserURLMappings), ctx, user)
+}
+
+// RestoreMemento mocks base method.
+func (m_2 *MockURLRepository) RestoreMemento(m *memento.Memento) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RestoreMemento", m)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RestoreMemento indicates an expected call of RestoreMemento.
+func (mr *MockURLRepositoryMockRecorder) RestoreMemento(m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreMemento", reflect.TypeOf((*MockURLRepository)(nil).RestoreMemento), m)
 }

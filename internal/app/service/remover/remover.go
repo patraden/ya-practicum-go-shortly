@@ -55,6 +55,12 @@ func NewBatchRemover(repo repository.URLRepository, log *zerolog.Logger) (*Batch
 		err := repo.DelUserURLMappings(ctx, slugs)
 		batch.SetError(err)
 
+		if err != nil {
+			log.Error().Err(err).
+				Int("size", len(batch)).
+				Msg("remover: batch failed")
+		}
+
 		select {
 		case <-ctx.Done():
 			log.Info().

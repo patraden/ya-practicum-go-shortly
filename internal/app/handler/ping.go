@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
@@ -23,6 +24,11 @@ func NewPingHandler(db *postgres.Database, config *config.Config, log *zerolog.L
 		config: config,
 		log:    log,
 	}
+}
+
+// RegisterRoutes register all handler routes within http router.
+func (h *PingHandler) RegisterRoutes(router chi.Router) {
+	router.Get("/ping", h.HandleDBPing)
 }
 
 // HandleDBPing verifies database connectivity and returns the status.

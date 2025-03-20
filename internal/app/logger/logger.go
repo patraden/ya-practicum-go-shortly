@@ -3,7 +3,9 @@ package logger
 import (
 	"os"
 
+	"github.com/ipfans/fxlogger"
 	"github.com/rs/zerolog"
+	"go.uber.org/fx/fxevent"
 )
 
 // Logger is a wrapper around zerolog.Logger to provide structured logging.
@@ -25,4 +27,9 @@ func NewLogger(level zerolog.Level) *Logger {
 // GetLogger returns the zerolog.Logger instance for custom log messages.
 func (l *Logger) GetLogger() *zerolog.Logger {
 	return &l.log
+}
+
+// GetFxLogger returns uber fx compatible zerolog.
+func (l *Logger) GetFxLogger() func() fxevent.Logger {
+	return fxlogger.WithZerolog(l.log)
 }

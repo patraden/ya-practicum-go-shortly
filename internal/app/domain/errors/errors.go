@@ -7,8 +7,7 @@ import (
 
 // Static errors.
 var (
-	ErrStateCreate            = errors.New("[memento] could not create state")
-	ErrStateRestore           = errors.New("[memento] could not restore state")
+	ErrStateNotmplemented     = errors.New("[memento] state store/restore not implemented")
 	ErrPGEmptyPool            = errors.New("[postgres] empty database conn pool")
 	ErrOriginalExists         = errors.New("[repository] original url exists")
 	ErrSlugExists             = errors.New("[repository] slug exists")

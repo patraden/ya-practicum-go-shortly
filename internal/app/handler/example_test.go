@@ -5,45 +5,36 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
+	"github.com/patraden/ya-practicum-go-shortly/internal/app"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/logger"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/server"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
-	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 )
 
 func Example() {
-	cfg := config.LoadConfig()
-	// avoid loading url snapshot from disc.
+	cfg := config.DefaultConfig()
 	cfg.ForceEmptyRepo = true
 
-	log := logger.NewLogger(zerolog.Disabled).GetLogger()
-	database := postgres.NewDatabase(log, cfg.DatabaseDSN)
-	gen := urlgenerator.NewRandURLGenerator(cfg.URLsize)
-	repo := repository.NewInMemoryURLRepository()
+	// get http client
+	reqTimeout := 5 * time.Second
 	client := http.DefaultClient
+	ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 
-	remover, err := remover.NewBatchRemover(repo, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to init remover service")
-	}
-
-	stopChan := make(chan os.Signal, 1)
-	srv := server.NewServer(cfg, repo, gen, log, database, remover)
-	srv.Start()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	// start application
+	startTimeout := 2 * time.Second
+	app := app.App(cfg, zerolog.Disabled)
+
+	go func() { app.Run() }()
+
+	time.Sleep(startTimeout)
+
+	// send request
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
@@ -72,9 +63,9 @@ func Example() {
 	// Print the status code
 	fmt.Println(resp.Status)
 
-	// Gracefully shut down the server
-	stopChan <- syscall.SIGINT
-	srv.WaitForShutdown(stopChan)
+	if err = app.Stop(ctx); err != nil {
+		log.Error().Err(err).Msg("failed stop app")
+	}
 
 	// Output:
 	// 201 Created

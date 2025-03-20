@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+ 
+  postgres:
+    container_name: postgres
+    image: postgres:15.1
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost -p 5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    networks:
+      - shortener
+
+  shortener:
+    container_name: shortener
+    build:
+      context: ./..
+      dockerfile: deployments/Dockerfile
+    restart: always
+    environment:
+      - SERVER_ADDRESS=${SERVER_ADDRESS:-localhost:8080}
+      - BASE_URL=${BASE_URL:-http://localhost:8080/}
+      - FILE_STORAGE_PATH=${FILE_STORAGE_PATH:-/app/data/service_storage.json}
+      - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
+      - DATABASE_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+        - postgres
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    networks:
+      - shortener
+    volumes:
+      - ./.certs:/app/certs
+
+networks:
+    shortener:
+        name: shortener

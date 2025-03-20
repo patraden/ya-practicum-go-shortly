@@ -3,11 +3,12 @@ package urlgenerator
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"regexp"
 
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/config"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
 )
 
 // RandURLGenerator generates random slugs of a fixed length.
@@ -22,23 +23,18 @@ func NewRandURLGenerator(l int) *RandURLGenerator {
 	}
 }
 
+// NewRandURLGenerator creates a new instance of RandURLGenerator as per app config.
+func New(config *config.Config) *RandURLGenerator {
+	return NewRandURLGenerator(config.URLsize)
+}
+
 // GenerateSlug generates a random slug of a fixed length for a given original URL.
 // It selects characters from a predefined set (uppercase letters, lowercase letters, and digits)
 // and returns the generated slug.
 func (g *RandURLGenerator) GenerateSlug(_ context.Context, _ domain.OriginalURL) domain.Slug {
-	charSets := []string{
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ", // A-Z
-		"abcdefghijklmnopqrstuvwxyz", // a-z
-		"0123456789",                 // 0-9
-	}
+	str := utils.RandString(g.length)
 
-	bytes := make([]byte, g.length)
-	for i := range bytes {
-		charSet := charSets[rand.Intn(len(charSets))]
-		bytes[i] = charSet[rand.Intn(len(charSet))]
-	}
-
-	return domain.Slug(string(bytes))
+	return domain.Slug(str)
 }
 
 // IsValidSlug checks if the given slug matches the required format: a string of letters and digits

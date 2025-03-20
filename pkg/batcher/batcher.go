@@ -167,7 +167,7 @@ func (b *Batcher) Batch(ctx context.Context) {
 			out = append(out, op)
 			commit = len(out) == b.maxSize
 		case <-tch:
-			commit = len(out) > 0
+			commit = true
 		case <-ctx.Done():
 			atomic.StoreUint32(&b.closing, 1)
 			close(b.in)
@@ -182,8 +182,10 @@ func (b *Batcher) Batch(ctx context.Context) {
 		}
 
 		if commit {
-			b.logCommit(len(out))
-			b.commitFn(ctx, out)
+			if len(out) > 0 {
+				b.logCommit(len(out))
+				b.commitFn(ctx, out)
+			}
 
 			out = out[:0]
 
