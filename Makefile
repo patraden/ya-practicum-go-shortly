@@ -46,6 +46,7 @@ mocks:
 
 .PHONY: code
 code: mocks
+	@easyjson -all internal/app/config/config.go
 	@easyjson -all internal/app/dto/dto.go
 	@easyjson -all internal/app/domain/urlmapping.go
 

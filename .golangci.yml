@@ -100,3 +100,6 @@ linters-settings:
       - net/http
       - github.com/patraden/ya-practicum-go-shortly/*
   
+  tagalign:
+    align: false
+  

@@ -3,9 +3,11 @@ package config
 import (
 	"flag"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/caarlos0/env/v6"
+	easyjson "github.com/mailru/easyjson"
 
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils"
@@ -18,6 +20,37 @@ type builder struct {
 func newBuilder() *builder {
 	return &builder{
 		cfg: DefaultConfig(),
+	}
+}
+
+func (b *builder) loadFile() {
+	args := os.Args[1:]
+
+	for i := range args {
+		if args[i] == "-c" || args[i] == "-config" {
+			if i+1 < len(args) {
+				b.cfg.ConfigJSON = args[i+1]
+			}
+
+			break
+		}
+	}
+
+	if b.cfg.ConfigJSON == `` {
+		return
+	}
+
+	file, err := os.ReadFile(b.cfg.ConfigJSON)
+	if err != nil {
+		log.Fatal(e.ErrInvalidConfig)
+
+		return
+	}
+
+	if err := easyjson.Unmarshal(file, b.cfg); err != nil {
+		log.Fatal(e.ErrInvalidConfig)
+
+		return
 	}
 }
 
