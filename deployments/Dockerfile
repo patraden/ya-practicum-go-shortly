@@ -1,5 +1,4 @@
-# Use Go 1.22.8 as the base image
-FROM golang:1.22.8 AS builder
+FROM golang:1.24.1 AS builder
 
 WORKDIR /app
 
@@ -21,8 +20,7 @@ RUN go build -ldflags="\
   -X ${VERSION_PACKAGE}.buildCommit=${BUILD_COMMIT}" \
   -o /app/shortener ./cmd/shortener
 
-# Create a lightweight final image
-FROM golang:1.22.8
+FROM golang:1.24.1
 
 WORKDIR /app
 

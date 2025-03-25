@@ -35,7 +35,7 @@ func TestDefaultConfig(t *testing.T) {
 func TestLoadConfigFromFile(t *testing.T) {
 	t.Parallel()
 
-	tmpFile, err := os.CreateTemp("", "config_test.json")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "config_test.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestLoadConfigFromFile(t *testing.T) {
 
 // Test priority order: Env > Flags > File > Default.
 func TestLoadConfigPriorityOrder(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "config_test.json")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "config_test.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestLoadConfigSaveAsFile(t *testing.T) {
 	jsonData, err := easyjson.Marshal(originalCfg)
 	require.NoError(t, err, "failed to marshal config")
 
-	tmpFile, err := os.CreateTemp("", "config-*.json")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "config-*.json")
 	require.NoError(t, err, "failed to create temp file")
 
 	defer os.Remove(tmpFile.Name())

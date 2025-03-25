@@ -3,13 +3,14 @@
 linters:
   enable-all: true
   disable:
-    - gomnd
     - gochecknoglobals
-    - nlreturn
-    - nilnil
-    - execinquery
-    - exportloopref
+    - nlreturn #annoying!
+    - nilnil # why not?
+    - intrange #annoying!
+    - tenv # depricated
+    - recvcheck #not working good with easyjson
     - tparallel # redundant of paralleltest, which is configurable
+    - usetesting # annoying on experiments t.Context()
 
 linters-settings:
   # https://github.com/OpenPeeDeeP/depguard
