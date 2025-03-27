@@ -25,3 +25,6 @@ vendor/
 
 # Data records
 data/service_storage.json
+
+# tls certificates
+.certs
