@@ -65,6 +65,7 @@ func (b *builder) loadFlags() {
 	flag.StringVar(&b.cfg.BaseURL, "b", b.cfg.BaseURL, "base url {base url}/{short link}")
 	flag.StringVar(&b.cfg.FileStoragePath, "f", b.cfg.FileStoragePath, "url storage file path")
 	flag.StringVar(&b.cfg.DatabaseDSN, "d", b.cfg.DatabaseDSN, "database DSN")
+	flag.StringVar(&b.cfg.TrustedSubnet, "t", b.cfg.TrustedSubnet, "trusted subnet")
 	flag.BoolVar(&b.cfg.EnableHTTPS, "s", b.cfg.EnableHTTPS, "enable https")
 	flag.BoolVar(&b.cfg.ForceEmptyRepo, "force-empty", b.cfg.ForceEmptyRepo, "skip repository load from disk")
 	flag.Parse()

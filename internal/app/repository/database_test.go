@@ -380,3 +380,72 @@ func TestDelUserURLMappingsFailure(t *testing.T) {
 	err = mockPool.ExpectationsWereMet()
 	require.NoError(t, err)
 }
+
+func TestGetStatsSuccess(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	repo := repository.NewDBURLRepository(mockPool, log)
+	ctx := context.Background()
+	expected := &dto.RepoStats{
+		CountSlugs: int64(5),
+		CountUsers: int64(3),
+	}
+
+	mockPool.
+		ExpectQuery(`SELECT COUNT\(1\)\:\:BIGINT\s+AS CountSlugs`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"countslugs", "countusers"}).
+				AddRow(expected.CountSlugs, expected.CountUsers),
+		)
+
+	actual, err := repo.GetStats(ctx)
+	require.NoError(t, err)
+	require.Equal(t, expected.CountSlugs, actual.CountSlugs)
+	require.Equal(t, expected.CountUsers, actual.CountUsers)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+func TestGetStatsFailure(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	repo := repository.NewDBURLRepository(mockPool, log)
+	ctx := context.Background()
+
+	mockPool.
+		ExpectQuery(`SELECT COUNT\(1\)\:\:BIGINT\s+AS CountSlugs`).
+		WillReturnError(&pgconn.PgError{Code: pgerrcode.ConnectionFailure})
+
+	actual, err := repo.GetStats(ctx)
+	require.Error(t, err)
+	require.Nil(t, actual)
+
+	err = mockPool.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+func TestMemntoStoreRestore(t *testing.T) {
+	t.Parallel()
+
+	log := logger.NewLogger(zerolog.InfoLevel).GetLogger()
+	mockPool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	repo := repository.NewDBURLRepository(mockPool, log)
+
+	state, err := repo.CreateMemento()
+	require.ErrorIs(t, err, e.ErrStateNotmplemented)
+	require.Nil(t, state)
+
+	err = repo.RestoreMemento(nil)
+	require.ErrorIs(t, err, e.ErrStateNotmplemented)
+}

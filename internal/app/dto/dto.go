@@ -93,3 +93,11 @@ func NewURLPairBatch(maps *[]domain.URLMapping, baseURL string) *URLPairBatch {
 
 	return &res
 }
+
+// URLStats represents stats request response content.
+//
+//easyjson:json
+type RepoStats struct {
+	CountSlugs int64 `json:"urls"`
+	CountUsers int64 `json:"users"`
+}

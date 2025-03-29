@@ -93,6 +93,25 @@ type FillDeletedSlugTempTableParams struct {
 	UserID domain.UserID `db:"user_id"`
 }
 
+const GetStats = `-- name: GetStats :one
+SELECT 
+  COUNT(1)::BIGINT AS CountSlugs,
+  COUNT(DISTINCT user_id)::BIGINT AS CountUsers
+FROM shortener.urlmapping
+`
+
+type GetStatsRow struct {
+	Countslugs int64 `db:"countslugs"`
+	Countusers int64 `db:"countusers"`
+}
+
+func (q *Queries) GetStats(ctx context.Context) (GetStatsRow, error) {
+	row := q.db.QueryRow(ctx, GetStats)
+	var i GetStatsRow
+	err := row.Scan(&i.Countslugs, &i.Countusers)
+	return i, err
+}
+
 const GetURLMapping = `-- name: GetURLMapping :one
 SELECT slug, original, user_id, created_at, expires_at, deleted
 FROM shortener.urlmapping

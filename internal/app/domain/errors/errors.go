@@ -20,6 +20,7 @@ var (
 	ErrSlugDeleted            = errors.New("[shortener] slug deleted")
 	ErrSlugCollision          = errors.New("[shortener] slug collision")
 	ErrShortenerInternal      = errors.New("[shortener] internal error")
+	ErrStatsProviderInternal  = errors.New("[statsprovider] internal error")
 	ErrRemoverInternal        = errors.New("[remover] internal error")
 	ErrRemoverInitBatcher     = errors.New("[remover] init batcher error")
 	ErrInvalidConfig          = errors.New("[config] bad config parameters")

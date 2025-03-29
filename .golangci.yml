@@ -99,7 +99,7 @@ linters-settings:
   wrapcheck:
     ignorePackageGlobs:
       - net/http
-      - github.com/patraden/ya-practicum-go-shortly/*
+      - github.com/patraden/ya-practicum-go-shortly/internal/app/*
   
   tagalign:
     align: false

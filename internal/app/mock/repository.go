@@ -13,11 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	memento "github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockURLRepository is a mock of URLRepository interface.
@@ -100,6 +99,21 @@ func (m *MockURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto.
 func (mr *MockURLRepositoryMockRecorder) DelUserURLMappings(ctx, tasks any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelUserURLMappings", reflect.TypeOf((*MockURLRepository)(nil).DelUserURLMappings), ctx, tasks)
+}
+
+// GetStats mocks base method.
+func (m *MockURLRepository) GetStats(ctx context.Context) (*dto.RepoStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStats", ctx)
+	ret0, _ := ret[0].(*dto.RepoStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStats indicates an expected call of GetStats.
+func (mr *MockURLRepositoryMockRecorder) GetStats(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockURLRepository)(nil).GetStats), ctx)
 }
 
 // GetURLMapping mocks base method.

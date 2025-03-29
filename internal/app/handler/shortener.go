@@ -50,7 +50,6 @@ func InsistentShortenerHandler(
 func (h *ShortenerHandler) RegisterRoutes(router chi.Router) {
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.Authenticate(h.log, h.config))
-		r.Use(middleware.Logger(h.log))
 		r.Get("/{shortURL}", h.HandleGetOriginalURL)
 		r.Get("/api/user/urls", h.HandleGetUserURLs)
 		r.Post("/api/shorten/batch", h.HandleBatchShortenURLJSON)

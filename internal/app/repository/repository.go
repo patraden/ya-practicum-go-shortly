@@ -18,4 +18,5 @@ type URLRepository interface {
 	GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error)
 	GetUserURLMappings(ctx context.Context, user domain.UserID) ([]domain.URLMapping, error)
 	DelUserURLMappings(ctx context.Context, tasks []dto.UserSlug) error
+	GetStats(ctx context.Context) (*dto.RepoStats, error)
 }
