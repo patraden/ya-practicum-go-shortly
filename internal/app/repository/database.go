@@ -332,6 +332,31 @@ func (repo *DBURLRepository) DelUserURLMappings(ctx context.Context, tasks []dto
 	return nil
 }
 
+// GetStats retrieves repo statistics.
+func (repo *DBURLRepository) GetStats(ctx context.Context) (*dto.RepoStats, error) {
+	var stats *dto.RepoStats
+
+	retriableQuery := func() error {
+		qresults, err := repo.queries.GetStats(ctx)
+		if err != nil {
+			return err
+		}
+
+		stats = &dto.RepoStats{
+			CountSlugs: qresults.Countslugs,
+			CountUsers: qresults.Countusers,
+		}
+
+		return nil
+	}
+
+	if err := repo.WithRetry(ctx, retriableQuery); err != nil {
+		return stats, err
+	}
+
+	return stats, nil
+}
+
 // CreateMemento creates a memento of the current state of the repository.
 func (repo *DBURLRepository) CreateMemento() (*memento.Memento, error) {
 	return nil, e.ErrStateNotmplemented

@@ -21,6 +21,7 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/server"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/statsprovider"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/version"
@@ -56,12 +57,15 @@ func App(appCfg *config.Config, logLevel zerolog.Level) *fx.App {
 		fx.Provide(
 			shortener.NewInsistentShortener,
 			remover.NewBatchRemover,
+			statsprovider.NewRepoStatsProvider,
 			func(r *remover.BatchRemover) remover.URLRemover { return r },
+			func(p *statsprovider.RepoStatsProvider) statsprovider.StatsProvider { return p },
 		),
 		fx.Provide(
 			fx.Annotate(handler.NewPingHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.NewDeleteHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.InsistentShortenerHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(handler.NewStatsProviderHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.NewRouter, fx.ParamTags(``, `group:"handlers"`)),
 		),
 		fx.Provide(
@@ -170,6 +174,7 @@ func logStart(log *zerolog.Logger, config *config.Config) {
 		Bool("ENABLE_HTTPS", config.EnableHTTPS).
 		Bool("FORCE_EMPTY", config.ForceEmptyRepo).
 		Str("FILE_STORAGE_PATH", config.FileStoragePath).
+		Str("TRUSTED_SUBNET", config.TrustedSubnet).
 		Msg("App started")
 }
 
@@ -180,5 +185,6 @@ func logStop(log *zerolog.Logger, config *config.Config) {
 		Bool("ENABLE_HTTPS", config.EnableHTTPS).
 		Bool("FORCE_EMPTY", config.ForceEmptyRepo).
 		Str("FILE_STORAGE_PATH", config.FileStoragePath).
+		Str("TRUSTED_SUBNET", config.TrustedSubnet).
 		Msg("App stopped")
 }

@@ -1,5 +1,6 @@
 {
   "enable_https": true,
   "tlc_key_path": "/etc/ssl/private/shortener-key.pem",
-  "tlc_cert_path": "/etc/ssl/certs/shortener-cert.pem"
+  "tlc_cert_path": "/etc/ssl/certs/shortener-cert.pem",
+  "trusted_subnet": "192.168.1.0/24"
 }

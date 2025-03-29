@@ -39,3 +39,9 @@ SET deleted = true
 FROM urlmapping_tmp
 WHERE shortener.urlmapping.slug = urlmapping_tmp.slug
   AND shortener.urlmapping.user_id = urlmapping_tmp.user_id;
+
+-- name: GetStats :one
+SELECT 
+  COUNT(1)::BIGINT AS CountSlugs,
+  COUNT(DISTINCT user_id)::BIGINT AS CountUsers
+FROM shortener.urlmapping;

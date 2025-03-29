@@ -42,6 +42,7 @@ mocks:
 	@mockgen -source=internal/app/memento/originator.go -destination=internal/app/mock/originator.go -package=mock Originator
 	@mockgen -source=internal/app/service/shortener/shortener.go -destination=internal/app/mock/shortener.go -package=mock URLShortener
 	@mockgen -source=internal/app/service/remover/remover.go -destination=internal/app/mock/remover.go -package=mock URLRemover
+	@mockgen -source=internal/app/service/statsprovider/statsprovider.go -destination=internal/app/mock/statsprovider.go -package=mock StatsProvider
 
 
 .PHONY: code

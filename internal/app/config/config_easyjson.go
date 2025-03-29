@@ -4,11 +4,10 @@ package config
 
 import (
 	json "encoding/json"
-	time "time"
-
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+	time "time"
 )
 
 // suppress unused package warning
@@ -54,6 +53,8 @@ func easyjson6615c02eDecodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 			out.TLSKeyPath = string(in.String())
 		case "tlc_cert_path":
 			out.TLSCertPath = string(in.String())
+		case "trusted_subnet":
+			out.TrustedSubnet = string(in.String())
 		case "ConfigJSON":
 			out.ConfigJSON = string(in.String())
 		case "URLGenTimeout":
@@ -125,6 +126,11 @@ func easyjson6615c02eEncodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		const prefix string = ",\"tlc_cert_path\":"
 		out.RawString(prefix)
 		out.String(string(in.TLSCertPath))
+	}
+	{
+		const prefix string = ",\"trusted_subnet\":"
+		out.RawString(prefix)
+		out.String(string(in.TrustedSubnet))
 	}
 	{
 		const prefix string = ",\"ConfigJSON\":"

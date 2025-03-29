@@ -13,9 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockURLGenerator is a mock of URLGenerator interface.
