@@ -20,6 +20,7 @@ const (
 //easyjson:json
 type Config struct {
 	ServerAddr              string `env:"SERVER_ADDRESS" json:"server_address"`
+	ServerGRPCAddr          string `env:"SERVER_GRPC_ADDRESS" json:"server_grpc_address"`
 	BaseURL                 string `env:"BASE_URL" json:"base_url"`
 	FileStoragePath         string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	DatabaseDSN             string `env:"DATABASE_DSN" json:"database_dsn"`
@@ -43,6 +44,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		ServerAddr:              `localhost:8080`,
+		ServerGRPCAddr:          `localhost:3200`,
 		BaseURL:                 `http://localhost:8080/`,
 		FileStoragePath:         `data/service_storage.json`,
 		DatabaseDSN:             ``,

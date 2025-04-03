@@ -33,6 +33,8 @@ var (
 	ErrAuthInvalidToken       = errors.New("[middleware] invalid jwt token")
 	ErrAuthUnexpectedSign     = errors.New("[middleware] unexpected sign method")
 	ErrAuthNoCookie           = errors.New("[middleware] no auth cookie")
+	ErrAuthNoMD               = errors.New("[middleware] no metadata")
+	ErrServerShutdown         = errors.New("[server] server shutdown error")
 	ErrTestGeneral            = errors.New("[test] test error")
 )
 

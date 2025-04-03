@@ -4,10 +4,11 @@ package config
 
 import (
 	json "encoding/json"
+	time "time"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
-	time "time"
 )
 
 // suppress unused package warning
@@ -39,6 +40,8 @@ func easyjson6615c02eDecodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		switch key {
 		case "server_address":
 			out.ServerAddr = string(in.String())
+		case "server_grpc_address":
+			out.ServerGRPCAddr = string(in.String())
 		case "base_url":
 			out.BaseURL = string(in.String())
 		case "file_storage_path":
@@ -91,6 +94,11 @@ func easyjson6615c02eEncodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		const prefix string = ",\"server_address\":"
 		out.RawString(prefix[1:])
 		out.String(string(in.ServerAddr))
+	}
+	{
+		const prefix string = ",\"server_grpc_address\":"
+		out.RawString(prefix)
+		out.String(string(in.ServerGRPCAddr))
 	}
 	{
 		const prefix string = ",\"base_url\":"

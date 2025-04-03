@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package shortener.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/patraden/ya-practicum-go-shortly/api";
+
+service URLShortenerService {
+  rpc ShortenURL(ShortenURLRequest) returns (ShortenURLResponse);
+  rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+}
+
+message ShortenURLRequest {
+    string url = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uri = true];
+}
+
+message ShortenURLResponse {
+    string slug = 1;
+}
+
+message GetOriginalURLRequest {
+    string slug = 1 [
+        (buf.validate.field).required = true, 
+        (buf.validate.field).string.min_len = 6
+    ];
+}
+
+message GetOriginalURLResponse {
+    string url = 1;
+}

@@ -13,10 +13,11 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	memento "github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockURLRepository is a mock of URLRepository interface.

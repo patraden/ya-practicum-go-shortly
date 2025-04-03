@@ -4,9 +4,11 @@ package dto
 
 import (
 	json "encoding/json"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 )
 

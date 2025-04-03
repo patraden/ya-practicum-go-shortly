@@ -12,8 +12,9 @@ package mock
 import (
 	reflect "reflect"
 
-	memento "github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 	gomock "go.uber.org/mock/gomock"
+
+	memento "github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 )
 
 // MockOriginator is a mock of Originator interface.

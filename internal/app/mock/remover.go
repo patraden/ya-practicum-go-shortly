@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	gomock "go.uber.org/mock/gomock"
+
+	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 )
 
 // MockURLRemover is a mock of URLRemover interface.

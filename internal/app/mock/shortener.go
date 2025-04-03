@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	domain "github.com/patraden/ya-practicum-go-shortly/internal/app/domain"
 	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockURLShortener is a mock of URLShortener interface.

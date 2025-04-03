@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 	gomock "go.uber.org/mock/gomock"
+
+	dto "github.com/patraden/ya-practicum-go-shortly/internal/app/dto"
 )
 
 // MockStatsProvider is a mock of StatsProvider interface.
