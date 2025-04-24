@@ -1,0 +1,4 @@
+GET /api/internal/stats HTTP/1.1
+Host: localhost:8080
+Content-Type: text/plain
+X-Real-IP: 192.168.100.14

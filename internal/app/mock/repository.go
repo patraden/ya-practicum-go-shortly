@@ -102,6 +102,21 @@ func (mr *MockURLRepositoryMockRecorder) DelUserURLMappings(ctx, tasks any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelUserURLMappings", reflect.TypeOf((*MockURLRepository)(nil).DelUserURLMappings), ctx, tasks)
 }
 
+// GetStats mocks base method.
+func (m *MockURLRepository) GetStats(ctx context.Context) (*dto.RepoStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStats", ctx)
+	ret0, _ := ret[0].(*dto.RepoStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStats indicates an expected call of GetStats.
+func (mr *MockURLRepositoryMockRecorder) GetStats(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockURLRepository)(nil).GetStats), ctx)
+}
+
 // GetURLMapping mocks base method.
 func (m *MockURLRepository) GetURLMapping(ctx context.Context, slug domain.Slug) (*domain.URLMapping, error) {
 	m.ctrl.T.Helper()

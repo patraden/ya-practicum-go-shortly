@@ -33,7 +33,6 @@ func NewDeleteHandler(remover remover.URLRemover, config *config.Config, log *ze
 func (h *DeleteHandler) RegisterRoutes(router chi.Router) {
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.Authorize(h.log, h.config))
-		r.Use(middleware.Logger(h.log))
 		r.Delete("/api/user/urls", h.HandleDelUserURLs)
 	})
 }

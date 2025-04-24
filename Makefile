@@ -5,7 +5,9 @@ TEMP_FILE ?= data/service_storage.json
 DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable
 
 SERVER_PORT ?= 8443
+SERVER_GRPC_PORT ?= 3200
 SERVER_ADDRESS ?= 0.0.0.0:${SERVER_PORT}
+SERVER_GRPC_ADDRESS ?= 0.0.0.0:${SERVER_GRPC_PORT}
 BASE_URL ?= https://localhost:${SERVER_PORT}/
 ENABLE_HTTPS ?= true
 DOCKER := $(shell which docker)
@@ -33,6 +35,7 @@ lint:
 	@goimports -e -w -local "github.com/patraden/ya-practicum-go-shortly" .
 	@gofumpt -w ./cmd/shortener ./internal/app
 	@golangci-lint run ./...
+	@buf lint
 
 
 .PHONY: mocks
@@ -42,6 +45,7 @@ mocks:
 	@mockgen -source=internal/app/memento/originator.go -destination=internal/app/mock/originator.go -package=mock Originator
 	@mockgen -source=internal/app/service/shortener/shortener.go -destination=internal/app/mock/shortener.go -package=mock URLShortener
 	@mockgen -source=internal/app/service/remover/remover.go -destination=internal/app/mock/remover.go -package=mock URLRemover
+	@mockgen -source=internal/app/service/statsprovider/statsprovider.go -destination=internal/app/mock/statsprovider.go -package=mock StatsProvider
 
 
 .PHONY: code
@@ -49,6 +53,7 @@ code: mocks
 	@easyjson -all internal/app/config/config.go
 	@easyjson -all internal/app/dto/dto.go
 	@easyjson -all internal/app/domain/urlmapping.go
+	@buf generate
 
 
 .PHONY: test
@@ -176,6 +181,7 @@ docker\:pg:
 	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(POSTGRES_DB) \
 	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_GRPC_PORT=$(SERVER_GRPC_PORT) \
 	docker-compose -f $(DOCKER_COMPOSE_PATH) up -d postgres
 
 .PHONY: pg\:connect
@@ -203,6 +209,7 @@ staticlint\:build:
 .PHONY: docker\:up 
 docker\:up:
 	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	SERVER_GRPC_ADDRESS=$(SERVER_GRPC_ADDRESS) \
 	BASE_URL=$(BASE_URL) \
 	FILE_STORAGE_PATH=/app/data/service_storage.json \
 	ENABLE_HTTPS=$(ENABLE_HTTPS) \
@@ -210,11 +217,13 @@ docker\:up:
 	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(POSTGRES_DB) \
 	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_GRPC_PORT=$(SERVER_GRPC_PORT) \
 	docker-compose -f $(DOCKER_COMPOSE_PATH) up -d
 
 .PHONY: docker\:down
 docker\:down:
 	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	SERVER_GRPC_ADDRESS=$(SERVER_GRPC_ADDRESS) \
 	BASE_URL=$(BASE_URL) \
 	FILE_STORAGE_PATH=/app/data/service_storage.json \
 	ENABLE_HTTPS=$(ENABLE_HTTPS) \
@@ -222,11 +231,13 @@ docker\:down:
 	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(POSTGRES_DB) \
 	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_GRPC_PORT=$(SERVER_GRPC_PORT) \
 	docker-compose -f $(DOCKER_COMPOSE_PATH) down -v
 
 .PHONY: docker\:stop
 docker\:stop:
 	@SERVER_ADDRESS=$(SERVER_ADDRESS) \
+	SERVER_GRPC_ADDRESS=$(SERVER_GRPC_ADDRESS) \
 	BASE_URL=$(BASE_URL) \
 	FILE_STORAGE_PATH=/app/data/service_storage.json \
 	ENABLE_HTTPS=$(ENABLE_HTTPS) \
@@ -234,6 +245,7 @@ docker\:stop:
 	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(POSTGRES_DB) \
 	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_GRPC_PORT=$(SERVER_GRPC_PORT) \
 	docker-compose -f $(DOCKER_COMPOSE_PATH) stop
 
 .PHONY: docker\:build
@@ -246,6 +258,7 @@ docker\:build: docker\:down
 	POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(POSTGRES_DB) \
 	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_GRPC_PORT=$(SERVER_GRPC_PORT) \
 	docker-compose -f $(DOCKER_COMPOSE_PATH) build \
 		--build-arg VERSION_PACKAGE=$(VERSION_PACKAGE) \
 		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
@@ -253,3 +266,7 @@ docker\:build: docker\:down
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		--no-cache
 	$(MAKE) docker\:up
+
+.PHONY: buf\:generate
+buf\:generate:
+	@buf generate

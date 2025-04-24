@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 
 	e "github.com/patraden/ya-practicum-go-shortly/internal/app/domain/errors"
 )
@@ -76,4 +79,28 @@ func WithLogging(h http.Handler, log *zerolog.Logger) http.Handler {
 	}
 
 	return http.HandlerFunc(logFn)
+}
+
+// WithLoggingInterceptor is a gRPC server interceptor that logs details of each RPC request.
+func WithLoggingInterceptor(log *zerolog.Logger) grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (any, error) {
+		start := time.Now()
+
+		resp, err := handler(ctx, req)
+		duration := time.Since(start)
+		code := status.Code(err)
+
+		log.Info().
+			Str("method", info.FullMethod).
+			Str("status", code.String()).
+			Dur("duration", duration).
+			Msg("gRPC request processed")
+
+		return resp, err
+	}
 }

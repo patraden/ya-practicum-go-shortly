@@ -172,3 +172,16 @@ func (ms *InMemoryURLRepository) DelUserURLMappings(_ context.Context, tasks []d
 
 	return nil
 }
+
+// GetStats retrieves repo statistics.
+func (ms *InMemoryURLRepository) GetStats(_ context.Context) (*dto.RepoStats, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	stats := &dto.RepoStats{
+		CountSlugs: int64(len(ms.values)),
+		CountUsers: int64(len(ms.usrIndex)),
+	}
+
+	return stats, nil
+}

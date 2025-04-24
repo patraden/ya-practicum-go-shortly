@@ -40,6 +40,8 @@ func easyjson6615c02eDecodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		switch key {
 		case "server_address":
 			out.ServerAddr = string(in.String())
+		case "server_grpc_address":
+			out.ServerGRPCAddr = string(in.String())
 		case "base_url":
 			out.BaseURL = string(in.String())
 		case "file_storage_path":
@@ -54,6 +56,8 @@ func easyjson6615c02eDecodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 			out.TLSKeyPath = string(in.String())
 		case "tlc_cert_path":
 			out.TLSCertPath = string(in.String())
+		case "trusted_subnet":
+			out.TrustedSubnet = string(in.String())
 		case "ConfigJSON":
 			out.ConfigJSON = string(in.String())
 		case "URLGenTimeout":
@@ -92,6 +96,11 @@ func easyjson6615c02eEncodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		out.String(string(in.ServerAddr))
 	}
 	{
+		const prefix string = ",\"server_grpc_address\":"
+		out.RawString(prefix)
+		out.String(string(in.ServerGRPCAddr))
+	}
+	{
 		const prefix string = ",\"base_url\":"
 		out.RawString(prefix)
 		out.String(string(in.BaseURL))
@@ -125,6 +134,11 @@ func easyjson6615c02eEncodeGithubComPatradenYaPracticumGoShortlyInternalAppConfi
 		const prefix string = ",\"tlc_cert_path\":"
 		out.RawString(prefix)
 		out.String(string(in.TLSCertPath))
+	}
+	{
+		const prefix string = ",\"trusted_subnet\":"
+		out.RawString(prefix)
+		out.String(string(in.TrustedSubnet))
 	}
 	{
 		const prefix string = ",\"ConfigJSON\":"

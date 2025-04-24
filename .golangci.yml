@@ -69,14 +69,17 @@ linters-settings:
     # Default: []
     exclude:
       - '^net/url.URL$'
-      - '^net/http.Server$'
-      - '^net/http.Cookie$'
+      - '^net/http.*$'
+      - '^crypto/x509.*$'
+      - '^crypto/tls.*$'
+      - '^encoding/pem.Block$'
       - '^github\.com/jackc/pgx/v5\.TxOptions$'
       - '^github\.com/jackc/pgx/v5/pgconn\.PgError$'
       - '^github\.com/golang-jwt/jwt/v4\.RegisteredClaims$'
       - '^golang\.org/x/tools/go/analysis\.Analyzer$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/mock\..*$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/config\.Config$'
+      - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/handler\.GRPCShortenerHandler$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/domain\.URLMapping$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/middleware\.Claims$'
       - '^github\.com/patraden/ya-practicum-go-shortly/internal/app/service/remover\.Batcher$'
@@ -99,8 +102,16 @@ linters-settings:
   wrapcheck:
     ignorePackageGlobs:
       - net/http
-      - github.com/patraden/ya-practicum-go-shortly/*
+      - \*net/http
+      - net
+      - google.golang.org/grpc*
+      - \*google.golang.org/grpc*
+      - github.com/patraden/ya-practicum-go-shortly/internal/app/*
+      - github.com/bufbuild/protovalidate-go*
   
   tagalign:
     align: false
+  
+  dupl:
+    threshold: 200
   

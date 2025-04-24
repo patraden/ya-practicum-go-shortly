@@ -20,6 +20,7 @@ const (
 //easyjson:json
 type Config struct {
 	ServerAddr              string `env:"SERVER_ADDRESS" json:"server_address"`
+	ServerGRPCAddr          string `env:"SERVER_GRPC_ADDRESS" json:"server_grpc_address"`
 	BaseURL                 string `env:"BASE_URL" json:"base_url"`
 	FileStoragePath         string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	DatabaseDSN             string `env:"DATABASE_DSN" json:"database_dsn"`
@@ -27,6 +28,7 @@ type Config struct {
 	JWTSecret               string `env:"JWT_SECRET" json:"jwt_secret"`
 	TLSKeyPath              string `env:"TLC_KEY_PATH" json:"tlc_key_path"`
 	TLSCertPath             string `env:"TLC_CERT_PATH" json:"tlc_cert_path"`
+	TrustedSubnet           string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 	ConfigJSON              string `env:"CONFIG"`
 	URLGenTimeout           time.Duration
 	URLGenRetryInterval     time.Duration
@@ -42,6 +44,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		ServerAddr:              `localhost:8080`,
+		ServerGRPCAddr:          `localhost:3200`,
 		BaseURL:                 `http://localhost:8080/`,
 		FileStoragePath:         `data/service_storage.json`,
 		DatabaseDSN:             ``,
@@ -49,6 +52,7 @@ func DefaultConfig() *Config {
 		JWTSecret:               `d1a58c288a0226998149277b14993f6c73cf44ff9df3de548df4df25a13b251a`,
 		TLSKeyPath:              `/etc/ssl/private/shortener-key.pem`,
 		TLSCertPath:             `/etc/ssl/certs/shortener-cert.pem`,
+		TrustedSubnet:           ``,
 		ConfigJSON:              ``,
 		URLGenTimeout:           defaultURLGenTimeout,
 		URLGenRetryInterval:     defaultURLGenRetryInterval,

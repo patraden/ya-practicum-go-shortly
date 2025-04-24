@@ -19,8 +19,11 @@ import (
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/memento"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/repository"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/server"
+	grpcsrv "github.com/patraden/ya-practicum-go-shortly/internal/app/server/grpc"
+	httpsrv "github.com/patraden/ya-practicum-go-shortly/internal/app/server/http"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/remover"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/shortener"
+	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/statsprovider"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/service/urlgenerator"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/utils/postgres"
 	"github.com/patraden/ya-practicum-go-shortly/internal/app/version"
@@ -56,19 +59,24 @@ func App(appCfg *config.Config, logLevel zerolog.Level) *fx.App {
 		fx.Provide(
 			shortener.NewInsistentShortener,
 			remover.NewBatchRemover,
+			statsprovider.NewRepoStatsProvider,
 			func(r *remover.BatchRemover) remover.URLRemover { return r },
+			func(p *statsprovider.RepoStatsProvider) statsprovider.StatsProvider { return p },
 		),
 		fx.Provide(
 			fx.Annotate(handler.NewPingHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.NewDeleteHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.InsistentShortenerHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(handler.NewStatsProviderHandler, fx.As(new(handler.Handler)), fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(handler.NewRouter, fx.ParamTags(``, `group:"handlers"`)),
 		),
 		fx.Provide(
 			func(r repository.URLRepository) memento.Originator { return r },
 			memento.NewStateManager,
 		),
-		fx.Provide(server.NewServer),
+		fx.Provide(handler.NewGRPCShortenerHandler),
+		fx.Provide(httpsrv.NewServer),
+		fx.Provide(grpcsrv.NewServer),
 		fx.Invoke(fxAppInvoke),
 		fx.WithLogger(appLogger.GetFxLogger()),
 	)
@@ -80,7 +88,8 @@ func fxAppInvoke(
 	config *config.Config,
 	remover *remover.BatchRemover,
 	stateManager *memento.StateManager,
-	server *server.Server,
+	serverHTTP *httpsrv.Server,
+	serverGRPC *grpcsrv.Server,
 	shutdowner fx.Shutdowner,
 ) {
 	ctxRemover, removerCancel := context.WithCancel(context.Background())
@@ -96,7 +105,8 @@ func fxAppInvoke(
 			}
 
 			appHandleSignals(shutdowner, log)
-			appServerStart(shutdowner, server, log)
+			appServerStart(shutdowner, serverHTTP, log)
+			appServerStart(shutdowner, serverGRPC, log)
 			remover.Start(ctxRemover)
 			version := version.NewVersion(log)
 			version.Log()
@@ -108,8 +118,15 @@ func fxAppInvoke(
 			removerCancel()
 			remover.Stop(ctx)
 
-			err := server.Shutdown(ctx)
+			err := appServerStop(ctx, serverHTTP)
 			if err != nil {
+				log.Error().Err(err).Msg("Failed to stop HTTP server gracefully")
+				return err
+			}
+
+			err = appServerStop(ctx, serverGRPC)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to stop GRPC server gracefully")
 				return err
 			}
 
@@ -147,7 +164,7 @@ func appHandleSignals(shutdowner fx.Shutdowner, log *zerolog.Logger) {
 	}()
 }
 
-func appServerStart(shutdowner fx.Shutdowner, server *server.Server, log *zerolog.Logger) {
+func appServerStart(shutdowner fx.Shutdowner, server server.AppServer, log *zerolog.Logger) {
 	go func() {
 		err := server.Run()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -163,6 +180,10 @@ func appServerStart(shutdowner fx.Shutdowner, server *server.Server, log *zerolo
 	}()
 }
 
+func appServerStop(ctx context.Context, server server.AppServer) error {
+	return server.Shutdown(ctx)
+}
+
 func logStart(log *zerolog.Logger, config *config.Config) {
 	log.Info().
 		Str("SERVER_ADDRESS", config.ServerAddr).
@@ -170,6 +191,8 @@ func logStart(log *zerolog.Logger, config *config.Config) {
 		Bool("ENABLE_HTTPS", config.EnableHTTPS).
 		Bool("FORCE_EMPTY", config.ForceEmptyRepo).
 		Str("FILE_STORAGE_PATH", config.FileStoragePath).
+		Str("TRUSTED_SUBNET", config.TrustedSubnet).
+		Str("SERVER_GRPC_ADDRESS", config.ServerGRPCAddr).
 		Msg("App started")
 }
 
@@ -180,5 +203,7 @@ func logStop(log *zerolog.Logger, config *config.Config) {
 		Bool("ENABLE_HTTPS", config.EnableHTTPS).
 		Bool("FORCE_EMPTY", config.ForceEmptyRepo).
 		Str("FILE_STORAGE_PATH", config.FileStoragePath).
+		Str("TRUSTED_SUBNET", config.TrustedSubnet).
+		Str("SERVER_GRPC_ADDRESS", config.ServerGRPCAddr).
 		Msg("App stopped")
 }

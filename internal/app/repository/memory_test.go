@@ -220,3 +220,27 @@ func TestDelUserURLMappings(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, m3.Deleted)
 }
+
+func TestGetStats(t *testing.T) {
+	t.Parallel()
+
+	repo := repository.NewInMemoryURLRepository()
+	userID := domain.NewUserID()
+	otherUserID := domain.NewUserID()
+	ctx := context.Background()
+
+	_, err := repo.AddURLMapping(ctx, domain.NewURLMapping("slug1", "url1", userID))
+	require.NoError(t, err)
+
+	_, err = repo.AddURLMapping(ctx, domain.NewURLMapping("slug2", "url2", userID))
+	require.NoError(t, err)
+
+	_, err = repo.AddURLMapping(ctx, domain.NewURLMapping("slug3", "url3", otherUserID))
+	require.NoError(t, err)
+
+	stats, err := repo.GetStats(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(2), stats.CountUsers)
+	assert.Equal(t, int64(3), stats.CountSlugs)
+}

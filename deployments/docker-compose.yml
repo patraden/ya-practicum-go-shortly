@@ -29,6 +29,7 @@ services:
     restart: always
     environment:
       - SERVER_ADDRESS=${SERVER_ADDRESS:-localhost:8080}
+      - SERVER_GRPC_ADDRESS=${SERVER_GRPC_ADDRESS:-localhost:3200}
       - BASE_URL=${BASE_URL:-http://localhost:8080/}
       - FILE_STORAGE_PATH=${FILE_STORAGE_PATH:-/app/data/service_storage.json}
       - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
@@ -37,6 +38,7 @@ services:
         - postgres
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
+      - "${SERVER_GRPC_PORT}:${SERVER_GRPC_PORT}"
     networks:
       - shortener
     volumes:
